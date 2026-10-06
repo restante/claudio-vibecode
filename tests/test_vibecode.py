@@ -222,9 +222,9 @@ def test_cli_output_survives_a_legacy_console_encoding(tmp_path):
     assert bad.returncode != 0  # the QR really cannot be printed with cp1252 ...
     code = "import sys; from claudio_vibecode import cli; cli.main(['doctor']); "
     code += "from claudio_vibecode import qr; print(qr.text('http://x.test'))"
-    good = subprocess.run([sys.executable, "-c", code], capture_output=True, env=env, text=True)
+    good = subprocess.run([sys.executable, "-c", code], capture_output=True, env=env)
     assert good.returncode == 0, good.stderr  # ... but main() switches output to UTF-8 first
-    assert "█" in good.stdout
+    assert "█".encode() in good.stdout  # read as bytes: the test console may not be UTF-8
 
 
 def test_session_shows_the_name_you_gave_it(tmp_path, monkeypatch):
