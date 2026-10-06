@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "claudio-vibecode"
+version = "0.1.0"
+description = "Run Claude Code from your phone: transcript, Submit, Stop, tool approvals, hold-to-talk and Claude's voice, over a local web page."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Claudio Restante" }]
+keywords = ["claude-code", "vibe-coding", "remote-control", "phone", "voice"]
+dependencies = [
+    "claudio-tts @ git+https://github.com/restante/claudio-tts@v0.5.0",
+    "segno>=1.6",
+    "psutil>=5.9",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.8"]
+
+[project.scripts]
+claudio-vibecode = "claudio_vibecode.cli:main"
+
+# Plugs the phone into claudio-tts as an extra audio output (see claudio_tts/sinks.py).
+[project.entry-points."claudio_tts.sinks"]
+phone = "claudio_vibecode.audiolink:open_sink"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/claudio_vibecode"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]

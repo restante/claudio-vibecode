@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>Claudio vibecode</title>
+<style>
+  :root { --bg:#0f1115; --card:#1a1d24; --line:#2a2f3a; --text:#e9ecf1; --dim:#8b93a3;
+          --accent:#5b8cff; --ok:#2fbf71; --bad:#e5484d; --warn:#f5a524; }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f4f5f8; --card:#fff; --line:#dfe2ea; --text:#14161b; --dim:#667085; }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; background:var(--bg); color:var(--text);
+               font:16px/1.4 system-ui, -apple-system, sans-serif; }
+  body { min-height:100dvh; }
+  header { display:flex; flex-wrap:nowrap; gap:8px; align-items:center; padding:10px 12px;
+           overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  header::-webkit-scrollbar, #tabs::-webkit-scrollbar, #chips::-webkit-scrollbar { display:none; }
+  header h1 { font-size:15px; margin:0; flex:1 0 auto; padding-right:8px; }
+  @media (max-width: 600px) { header h1 { display:none; } header .chip:first-of-type { margin-left:0; } }
+  .chip { flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px;
+          padding:6px 12px; font-size:14px; white-space:nowrap; }
+  .chip.on { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background:var(--dim); }
+  .dot.working { background:var(--warn); } .dot.idle { background:var(--ok); } .dot.off { background:var(--dim); opacity:.4; }
+  #tabs { display:flex; gap:8px; padding:8px 12px; overflow-x:auto; scrollbar-width:none; }
+  #top { position:sticky; top:0; z-index:5; background:var(--bg); padding-top:env(safe-area-inset-top); border-bottom:1px solid var(--line); }
+  #app { display:flex; flex-direction:column; min-height:100dvh; }
+  #feed { flex:1; min-height:30vh; padding:8px 12px; display:flex; flex-direction:column; gap:8px; }
+  .msg { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 12px;
+         white-space:pre-wrap; word-break:break-word; }
+  .msg.prompt { align-self:flex-end; background:var(--accent); border-color:var(--accent); color:#fff; max-width:88%; }
+  .msg.summary { border-left:4px solid var(--ok); }
+  .msg small { display:block; color:var(--dim); margin-bottom:2px; }
+  .msg.prompt small { color:#dbe5ff; }
+  .msg.info { background:none; border:none; color:var(--dim); font-size:13px; text-align:center; }
+  .full { color:var(--dim); font-size:13px; margin-top:6px; text-decoration:underline; }
+  #ask { padding:0 12px; }
+  #draft { margin:0 12px; background:var(--card); border:2px solid var(--ok); border-radius:16px; padding:10px 12px; }
+  #draft small { color:var(--dim); display:block; margin-bottom:4px; }
+  #draft .text { white-space:pre-wrap; word-break:break-word; max-height:25vh; overflow:auto; margin-bottom:10px; }
+  button small { display:block; font-weight:400; font-size:12px; opacity:.85; margin-top:2px; }
+  button:disabled { opacity:.35; }
+  .approval { background:var(--card); border:2px solid var(--warn); border-radius:16px; padding:12px; margin:6px 0; }
+  .approval pre { margin:6px 0 10px; max-height:30vh; overflow:auto; white-space:pre-wrap; word-break:break-all;
+                  font:13px ui-monospace, monospace; background:var(--bg); padding:8px; border-radius:8px; }
+  .approval .risk { color:var(--bad); font-weight:600; font-size:13px; }
+  .row { display:flex; gap:10px; }
+  button { font:inherit; border:0; border-radius:16px; padding:16px; font-weight:600; color:#fff; background:var(--accent); flex:1; touch-action:manipulation; }
+  button:active { transform:scale(.98); filter:brightness(.92); }
+  button.ok { background:var(--ok); } button.bad { background:var(--bad); } button.dim { background:var(--card); color:var(--text); border:1px solid var(--line); }
+  button.hold { background:#7a5cff; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+  button.hold.down { background:var(--bad); }
+  footer { padding:8px 12px calc(10px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; }
+  #chips { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; }
+  #text { width:100%; resize:none; max-height:30vh; font:inherit; padding:14px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--text); min-width:0; }
+  #pair, #err { padding:32px 20px; text-align:center; }
+  .hidden { display:none !important; }
+  body.watch #tabs, body.watch #chips, body.watch header h1 { display:none; }
+  body.watch button { padding:28px 10px; font-size:20px; }
+</style>
+</head>
+<body>
+<div id="pair" class="hidden">
+  <h2>Pair this phone</h2>
+  <p id="pairmsg">On your computer run <b>/vibe qr</b> in Claude Code and scan the code.</p>
+</div>
+<div id="app" class="hidden">
+  <div id="top">
+  <header>
+    <h1>Claudio vibecode</h1>
+    <button class="chip" id="mute">Sound</button>
+    <button class="chip" id="listen">🎧 Listen: off</button>
+    <button class="chip" id="local">🖥 Mac speakers</button>
+    <button class="chip" id="away" aria-pressed="false">Away: off</button>
+  </header>
+  <div id="tabs"></div>
+  </div>
+  <div id="feed"></div>
+  <div id="ask"></div>
+  <footer>
+    <div id="chips"></div>
+    <textarea id="text" rows="2" placeholder="Message Claude. Hold to talk fills this; edit it, then Submit." autocomplete="off"></textarea>
+    <div class="row">
+      <button class="dim" id="clear" style="flex:0 0 auto;padding:20px 18px">Clear</button>
+      <button class="ok" id="submit" style="font-size:20px;padding:20px">Submit<small>sends it, like Enter</small></button>
+    </div>
+    <div class="row">
+      <button class="bad" id="stop">Stop Claude<small>interrupts what it is doing</small></button>
+      <button class="hold" id="voice">Hold to talk</button>
+    </div>
+  </footer>
+  <audio id="voiceout" playsinline></audio><audio id="keep" playsinline loop></audio>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const QUICK = ['continue', 'yes', 'no', 'commit it', 'explain', 'run the tests'];
+let firstPaint = false;
+let snap = null, current = null, stream = null, confirming = {};
+if (location.pathname === '/w') document.body.classList.add('watch');
+
+// Haptics: Android vibrates; iPhone Safari has no vibrate API, but toggling a hidden switch input clicks.
+const tick = document.createElement('label');
+tick.style.display = 'none';
+tick.innerHTML = '<input type="checkbox" switch>';
+document.head.appendChild(tick);
+function haptic(kind) {
+  const pattern = { tap: [10], ok: [12, 50, 12], warn: [40], down: [20], up: [8], error: [30, 40, 30, 40, 30] }[kind] || [10];
+  try { if (navigator.vibrate && navigator.vibrate(pattern)) return; } catch (e) {}
+  let t = 0;
+  pattern.forEach((ms, i) => { if (i % 2 === 0) setTimeout(() => { try { tick.click(); } catch (e) {} }, t); t += ms; });
+}
+document.addEventListener('pointerdown', (e) => { if (e.target.closest('.chip:not(#mute), #clear')) haptic('tap'); }, true);
+
+async function api(path, body) {
+  const res = await fetch(path, body === undefined ? {} : {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Claudio': '1' }, body: JSON.stringify(body) });
+  let data = {}; try { data = await res.json(); } catch (e) {}
+  return { status: res.status, data };
+}
+function show(which) { $('pair').classList.toggle('hidden', which !== 'pair'); $('app').classList.toggle('hidden', which !== 'app'); }
+
+async function boot() {
+  const code = new URLSearchParams(location.search).get('pair');
+  if (code) {
+    const r = await api('/api/pair', { code, name: navigator.platform || 'phone' });
+    history.replaceState({}, '', location.pathname);
+    if (r.status !== 200) { show('pair'); $('pairmsg').textContent = (r.data.error || 'Pairing failed') + '. Run /vibe qr again.'; return; }
+  }
+  const state = await api('/api/state');
+  if (state.status === 401) { show('pair'); return; }
+  show('app'); connect();
+}
+function connect() {
+  if (stream) stream.close();
+  stream = new EventSource('/api/stream');
+  stream.onmessage = (m) => { snap = JSON.parse(m.data); render(); };
+  stream.onerror = () => { stream.close(); setTimeout(connect, 2000); };
+}
+function sessionOf(id) { return snap.sessions.find((s) => s.id === id); }
+// ---- Listen: speech from the computer plays on this phone ----
+function silentWav(seconds) {
+  const rate = 8000, n = rate * seconds, b = new DataView(new ArrayBuffer(44 + n * 2));
+  const w = (o, s) => [...s].forEach((c, i) => b.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); b.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); b.setUint32(16, 16, true); b.setUint16(20, 1, true);
+  b.setUint16(22, 1, true); b.setUint32(24, rate, true); b.setUint32(28, rate * 2, true); b.setUint16(32, 2, true);
+  b.setUint16(34, 16, true); w(36, 'data'); b.setUint32(40, n * 2, true);
+  let s = ''; new Uint8Array(b.buffer).forEach((x) => (s += String.fromCharCode(x)));
+  return 'data:audio/wav;base64,' + btoa(s);
+}
+let listening = false, beat = null, played = new Set(), clips = [];
+const out = $('voiceout'), keep = $('keep');
+function pump() { if (!listening || !clips.length || !(out.paused || out.ended)) return; out.src = clips.shift(); out.play().catch(() => pump()); }
+out.onended = pump; out.onerror = pump;
+async function setListening(on) {
+  listening = on;
+  if (on) {
+    keep.src = silentWav(1);  // a silent loop keeps the page alive with the screen off
+    try { await keep.play(); out.src = silentWav(1); await out.play(); } catch (e) { listening = false; $('listen').textContent = '🎧 Tap again'; haptic('error'); return; }
+    if (listening) {
+      if (snap) snap.audio.forEach((c) => played.add(c.id));
+      const tell = () => api('/api/listen', { on: true });
+      tell(); beat = setInterval(tell, 8000);
+      if ('mediaSession' in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title: 'Claudio is listening', artist: 'claudio-vibecode' });
+    }
+  } else {
+    clearInterval(beat); keep.pause(); out.pause(); clips = []; api('/api/listen', { on: false });
+  }
+  haptic('ok'); render();
+}
+$('listen').onclick = () => { try { localStorage.setItem('listen', listening ? '' : '1'); } catch (e) {} setListening(!listening); };
+$('local').onclick = () => { api('/api/localsound', { on: !snap.local }); haptic('ok'); };
+function takeClips() {
+  if (!listening || !snap) return;
+  snap.audio.forEach((c) => { if (!played.has(c.id)) { played.add(c.id); clips.push('/api/audio/' + c.id); } });
+  pump();
+}
+
+function render() {
+  if (!snap) return;
+  let wanted = false; try { wanted = !!localStorage.getItem('listen'); } catch (e) {}
+  $('listen').textContent = listening ? '🎧 Listening' : wanted ? '🎧 Tap to resume' : '🎧 Listen: off';
+  $('local').textContent = snap.local ? '🖥 Mac speakers: on' : '🖥 Mac speakers: off';
+  $('local').classList.toggle('on', snap.local);
+  $('listen').classList.toggle('on', listening);
+  takeClips();
+  if (!current) { try { current = localStorage.getItem('session'); } catch (e) {} }
+  if (!current || !sessionOf(current)) {
+    // Open on the session that did something last (that is the one you are working in).
+    const ranked = [...snap.sessions].sort((a, b) => (b.online - a.online) || (b.last - a.last));
+    current = ranked.length ? ranked[0].id : null;
+  }
+  const me = sessionOf(current);
+  $('mute').hidden = !me || me.muted === null || me.muted === undefined;  // claudio-tts not reporting
+  $('mute').textContent = me && !me.muted ? '🔊 Sound on' : '🔇 Muted';
+  $('mute').classList.toggle('on', !!me && !me.muted);
+  $('away').textContent = 'Away: ' + (snap.away ? 'on' : 'off');
+  $('away').classList.toggle('on', snap.away);
+  $('tabs').innerHTML = '';
+  const names = snap.sessions.map((s) => s.name);
+  [...snap.sessions].sort((a, b) => b.last - a.last).forEach((s) => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (s.id === current ? ' on' : '');
+    b.innerHTML = '<span class="dot ' + (s.online ? s.status : 'off') + '"></span>';
+    b.append(names.filter((n) => n === s.name).length > 1 ? s.name + ' ' + s.id.slice(0, 4) : s.name);
+    b.onclick = () => { current = s.id; try { localStorage.setItem('session', s.id); } catch (e) {} render(); };
+    $('tabs').append(b);
+  });
+  if (!snap.sessions.length) $('tabs').textContent = 'No Claude session is connected. Start one, or type /vibe on.';
+  const doc = document.documentElement;
+  const near = !firstPaint || doc.scrollHeight - window.scrollY - window.innerHeight < 200;
+  firstPaint = true;
+  $('feed').innerHTML = '';
+  snap.events.filter((e) => e.session === current).forEach(addEvent);
+  if (near) window.scrollTo(0, doc.scrollHeight);
+  const cur = sessionOf(current);
+  syncText(cur ? cur.draft || '' : '');
+  $('stop').disabled = !cur || cur.status !== 'working';
+  renderAsks();
+  renderChips();
+}
+function addEvent(e) {
+  const d = document.createElement('div');
+  const time = new Date(e.ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (e.kind === 'prompt') { d.className = 'msg prompt'; d.innerHTML = '<small>' + time + '</small>'; d.append(e.text); }
+  else if (e.kind === 'reply') {
+    d.className = 'msg' + (e.summary ? ' summary' : '');
+    d.innerHTML = '<small>Claude ' + time + '</small>';
+    const t = document.createElement('div'); t.textContent = e.summary || e.text; d.append(t);
+    if (e.summary && e.summary !== e.text) {
+      const f = document.createElement('div'); f.className = 'full'; f.textContent = 'Show full reply';
+      f.onclick = () => { t.textContent = t.textContent === e.summary ? e.text : e.summary; f.textContent = t.textContent === e.summary ? 'Show full reply' : 'Show summary'; };
+      d.append(f);
+    }
+  } else { d.className = 'msg info'; d.textContent = e.text; }
+  $('feed').append(d);
+}
+function renderAsks() {
+  $('ask').innerHTML = '';
+  snap.approvals.filter((a) => a.session === current).forEach((a) => {
+    const box = document.createElement('div'); box.className = 'approval';
+    const cmd = typeof a.input === 'object' && a.input ? (a.input.command || a.input.file_path || JSON.stringify(a.input, null, 1)) : String(a.input);
+    box.innerHTML = '<b>Claude wants to use ' + a.tool + '</b>' + (a.risky ? ' <span class="risk">careful: tap OK twice</span>' : '');
+    const pre = document.createElement('pre'); pre.textContent = cmd; box.append(pre);
+    const row = document.createElement('div'); row.className = 'row';
+    const no = document.createElement('button'); no.className = 'bad'; no.textContent = 'Deny';
+    no.onclick = () => { haptic('warn'); api('/api/approve', { id: a.id, allow: false }); };
+    const ok = document.createElement('button'); ok.className = 'ok';
+    ok.textContent = confirming[a.id] ? 'Confirm OK' : 'OK';
+    ok.onclick = async () => {
+      const r = await api('/api/approve', { id: a.id, allow: true, confirm: !!confirming[a.id] });
+      haptic(r.status === 409 ? 'warn' : 'ok');
+      if (r.status === 409) { confirming[a.id] = true; renderAsks(); }
+    };
+    row.append(no, ok); box.append(row); $('ask').append(box);
+  });
+}
+function renderChips() {
+  if ($('chips').dataset.done) return; $('chips').dataset.done = 1;
+  QUICK.forEach((q) => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = q; b.onclick = () => send(q); $('chips').append(b); });
+}
+async function send(text) {
+  if (!current || !text.trim()) return;
+  const r = await api('/api/say', { session: current, text });
+  if (r.status !== 200) { alert(r.data.error || 'Could not send'); return; }
+  $('text').value = '';
+}
+$('stop').onclick = () => { if (current) { haptic('warn'); api('/api/cancel', { session: current }); } };
+// One text box, mirrored with the prompt box on the computer: dictation fills it, edits go back.
+const box = $('text');
+let dirty = false, lastPushed = null, pushTimer = null, shownFor = null;
+function syncText(remote) {
+  if (shownFor !== current) { box.value = remote; shownFor = current; dirty = false; lastPushed = remote; }
+  else if (remote !== lastPushed && !(dirty && document.activeElement === box)) { box.value = remote; lastPushed = remote; dirty = false; }
+  $('submit').disabled = !box.value.trim();
+}
+function pushText() {
+  clearTimeout(pushTimer);
+  if (!current) return Promise.resolve();
+  lastPushed = box.value; dirty = false;
+  return api('/api/draft', { session: current, text: box.value });
+}
+box.addEventListener('input', () => {
+  dirty = true; $('submit').disabled = !box.value.trim();
+  clearTimeout(pushTimer); pushTimer = setTimeout(pushText, 400);
+});
+$('submit').onclick = async () => {
+  const text = box.value.trim();
+  if (!current || !text) return;
+  clearTimeout(pushTimer);
+  box.value = ''; lastPushed = ''; dirty = false; $('submit').disabled = true;
+  const r = await api('/api/submit', { session: current, text });
+  haptic(r.status === 200 ? 'ok' : 'error');
+  if (r.status !== 200) { box.value = text; $('submit').disabled = false; alert(r.data.error || 'Could not send'); }
+};
+$('clear').onclick = () => { box.value = ''; $('submit').disabled = true; pushText(); };
+$('mute').onclick = () => { const me = sessionOf(current); if (me) api('/api/mute', { session: current, on: !me.muted }).then(() => haptic('ok')); };
+$('away').onclick = () => api('/api/away', { on: !snap.away });
+
+// Hold to talk: press = hold Claude's voice key on the computer, release = let go.
+let held = false;
+async function voice(action) {
+  const r = await api('/api/voice', { session: current, action });
+  if (r.status !== 200 && action === 'down') { held = false; $('voice').classList.remove('down'); alert(r.data.error || 'Voice key not available'); }
+}
+const vb = $('voice');
+vb.addEventListener('pointerdown', (e) => { e.preventDefault(); if (held || !current) return; held = true; vb.classList.add('down'); haptic('down'); vb.textContent = 'Listening… release to stop'; vb.setPointerCapture(e.pointerId); voice('down'); });
+const up = () => { if (!held) return; held = false; vb.classList.remove('down'); vb.textContent = 'Hold to talk'; voice('up'); haptic('up'); };
+vb.addEventListener('pointerup', up); vb.addEventListener('pointercancel', up);
+vb.addEventListener('contextmenu', (e) => e.preventDefault());
+window.addEventListener('pagehide', up);
+boot();
+</script>
+</body>
+</html>

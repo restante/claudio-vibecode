@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions, ideas and chat
+    url: https://github.com/restante/claudio-vibecode/discussions
+    about: Not a bug? Ask a question or share an idea in Discussions.
+  - name: Contact the maintainer
+    url: https://github.com/restante
+    about: Want to contribute or talk first? Find me on GitHub.

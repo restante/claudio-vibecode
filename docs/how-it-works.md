@@ -1,0 +1,41 @@
+# How claudio-vibecode works
+
+Control Claude Code from your phone while you are away from the screen. It is a small web page served by your own
+computer: no app, no account, nothing leaves your network.
+
+```
+/vibe on        start it and show a QR code (also opens a bigger one in your browser)
+/vibe qr        a fresh QR code to pair another phone
+/vibe status    address, paired phones, connected sessions
+/vibe away on   send tool permission asks to the phone (off: normal dialogs at the keyboard)
+/vibe devices   list paired phones      /vibe revoke <id>   remove one
+/vibe off       stop it and close the port
+```
+
+## What you get on the phone
+- Every Claude session on the computer, with its transcript, the spoken summaries, and a "show full reply" tap.
+- A message box and quick replies (`continue`, `yes`, `commit it`, ...). Messages arrive as if you typed them.
+- **Stop** cancels the running turn.
+- **OK / Deny** for permission asks, only in away mode. The exact command is shown. Risky ones (`rm`, `git push`,
+  `curl`, `sudo`, writes outside the project, MCP tools) need a second tap. If nobody answers within a minute the
+  normal dialog on the computer decides.
+- **Hold to talk** holds the key Claude Code's voice mode listens to (space, with `voice.mode: hold`) on the
+  computer for as long as you press. It presses that key in the front window, so the Claude terminal must be
+  focusable and the screen unlocked. On macOS allow your terminal app in System Settings > Privacy & Security >
+  Accessibility; on Linux install `xdotool` (X11).
+- `/w` is the same page with huge buttons for a watch browser.
+
+## Windows
+Works on Windows 10/11 too: allow `python.exe` on private networks when the firewall asks. See
+[windows.md](windows.md#phone-remote-on-windows).
+
+## Security
+A paired phone can make Claude run tools on your computer, so treat it like a keyboard.
+- Off by default; only while you run `/vibe on`. It also stops itself after 8 idle hours.
+- The QR holds a one-time code (5 minutes). The phone swaps it for its own token, stored hashed. Revoke any time.
+- Every route needs that token; the page only answers your local network.
+- The connection is plain `http` on your Wi-Fi: use a network you trust. For another network or encryption, use
+  [Tailscale](https://tailscale.com): `/vibe status` prints the Tailscale address when it is running.
+
+## Limits (v1)
+The phone's own microphone needs HTTPS, so it isn't used yet; dictate with the keyboard's mic key or Hold to talk. A notification when Claude finishes (ntfy for Apple Watch and Wear OS) is on the roadmap.
