@@ -116,7 +116,7 @@ def cmd_doctor(a: argparse.Namespace) -> int:
         check(False, "claudio-tts installed", "https://github.com/restante/claudio-tts")
     ok, why = voicekey.available()
     check(ok, "voice button (keyboard access)", why)
-    check(bool(ctl.running()), "hub running", "turn it on with /vibe on")
+    print(f"  info  hub is {'on' if ctl.running() else 'off (it is off until you type /vibe)'}")
     mod = paths.claude_dir() / "mods" / "claudio-vibecode"
     check(mod.exists(), f"mod installed at {mod}", "run: claudio-vibecode install-mod")
     print("All good." if not failed else "Some checks failed.")
