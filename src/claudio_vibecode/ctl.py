@@ -70,6 +70,11 @@ def start() -> dict:
     port = _port()
     host = "0.0.0.0"  # noqa: S104 - the phone is on the LAN; every route but /pair needs pairing
     url = f"http://{lan_ip()}:{port}"
+    secure = tailscale_https()
+    if secure and _serve_https(port):
+        url = secure  # the phone page must load over https for the mic to work
+    else:
+        secure = None
     log = open(paths.state_dir() / "hub.log", "ab")  # noqa: SIM115 - handed to the child
     kwargs: dict = {"stdin": subprocess.DEVNULL, "stdout": log, "stderr": log}
     if sys.platform == "win32":
@@ -82,7 +87,7 @@ def start() -> dict:
         kwargs["start_new_session"] = True
     child = subprocess.Popen(
         [sys.executable, "-m", "claudio_vibecode", "_serve", "--host", host,
-         "--port", str(port), "--url", url],
+         "--port", str(port), "--url", url, *(["--mic"] if secure else [])],
         **kwargs,
     )  # fmt: skip
     info = {
@@ -90,6 +95,7 @@ def start() -> dict:
         "created": psutil.Process(child.pid).create_time(),
         "port": port,
         "url": url,
+        "mic": bool(secure),
     }
     _info_file().write_text(json.dumps(info))
     for _ in range(100):  # wait up to 10 s for the port to answer
@@ -113,6 +119,8 @@ def stop() -> bool:
         except psutil.Error:
             pass
     voicekey.hold(False)
+    if info.get("mic"):
+        _serve_https(None)
     _info_file().unlink(missing_ok=True)
     return True
 
@@ -133,6 +141,36 @@ def pairing(invert: bool = False, open_browser: bool = False) -> str:
     if not ok:
         lines += ["", f"Voice button: {why}"]
     return "\n".join(lines)
+
+
+SERVE_PORT = 8443  # `tailscale serve` only offers HTTPS on 443, 8443 and 10000; 443 may be in use
+
+
+def tailscale_https() -> str | None:
+    """The https address of this computer on the tailnet, or None when the phone mic cannot work."""
+    try:
+        done = subprocess.run(
+            ["tailscale", "status", "--json"], capture_output=True, text=True, timeout=5
+        )
+        data = json.loads(done.stdout) if done.returncode == 0 else {}
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+    if not isinstance(data, dict) or data.get("BackendState") != "Running":
+        return None
+    name = str((data.get("Self") or {}).get("DNSName", "")).rstrip(".")
+    if not name or not data.get("CertDomains"):  # no MagicDNS / HTTPS certificates
+        return None
+    return f"https://{name}:{SERVE_PORT}"
+
+
+def _serve_https(port: int | None) -> bool:
+    """Point `tailscale serve` at the hub (port) or remove it (None). Never raises."""
+    cmd = ["tailscale", "serve", f"--https={SERVE_PORT}"]
+    cmd += ["--bg", f"http://127.0.0.1:{port}"] if port else ["off"]
+    try:
+        return subprocess.run(cmd, capture_output=True, timeout=15).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
 
 
 def _tailscale() -> str | None:

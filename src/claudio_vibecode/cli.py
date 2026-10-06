@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import sys
 import urllib.error
 from pathlib import Path
@@ -13,7 +14,7 @@ from claudio_vibecode import DEFAULT_PORT, __version__, auth, ctl, paths, server
 
 
 def cmd_serve(a: argparse.Namespace) -> int:
-    server.serve(a.host, a.port, a.url)
+    server.serve(a.host, a.port, a.url, mic=a.mic)
     return 0
 
 
@@ -53,6 +54,15 @@ def _need_hub() -> dict | None:
     return info
 
 
+def _mic_hint() -> str:
+    """Why the phone mic is off (it needs Tailscale with HTTPS certificates)."""
+    if shutil.which("tailscale") is None:
+        return "off (install Tailscale: https://tailscale.com/download)"
+    if ctl.tailscale_https() is None:
+        return "off (connect Tailscale and turn on HTTPS certificates in its admin console)"
+    return "off (it is ready: restart with /vibe off, then /vibe)"
+
+
 def cmd_status(a: argparse.Namespace) -> int:
     info = _need_hub()
     if not info:
@@ -64,6 +74,7 @@ def cmd_status(a: argparse.Namespace) -> int:
     tail = ctl._tailscale()
     if tail:
         print(f"Tailscale address (encrypted, works away from home): http://{tail}:{info['port']}")
+    print(f"Phone mic: {'ready' if info.get('mic') else _mic_hint()}")
     ok, why = voicekey.available()
     print("Voice button: ready" if ok else f"Voice button: {why}")
     return 0
@@ -116,6 +127,8 @@ def cmd_doctor(a: argparse.Namespace) -> int:
         check(False, "claudio-tts installed", "https://github.com/restante/claudio-tts")
     ok, why = voicekey.available()
     check(ok, "voice button (keyboard access)", why)
+    secure = ctl.tailscale_https()
+    print(f"  info  phone mic: {'ready, ' + secure if secure else _mic_hint()}")
     print(f"  info  hub is {'on' if ctl.running() else 'off (it is off until you type /vibe)'}")
     mod = paths.claude_dir() / "mods" / "claudio-vibecode"
     check(mod.exists(), f"mod installed at {mod}", "run: claudio-vibecode install-mod")
@@ -161,6 +174,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host", default="0.0.0.0")  # noqa: S104 - the phone is on the LAN
     p.add_argument("--port", type=int, default=DEFAULT_PORT)
     p.add_argument("--url", default="")
+    p.add_argument("--mic", action="store_true", help="the page is served over https (Tailscale)")
     p.set_defaults(func=cmd_serve)
 
     sub.add_parser("start", help="start the hub").set_defaults(func=cmd_start)

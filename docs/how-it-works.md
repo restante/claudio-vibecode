@@ -38,4 +38,4 @@ A paired phone can make Claude run tools on your computer, so treat it like a ke
   [Tailscale](https://tailscale.com): `/vibe status` prints the Tailscale address when it is running.
 
 ## Limits (v1)
-The phone's own microphone needs HTTPS, so it isn't used yet; dictate with the keyboard's mic key or Hold to talk. A notification when Claude finishes (ntfy for Apple Watch and Wear OS) is on the roadmap.
+The phone's own microphone (**Dictate**) needs HTTPS, so it only appears when Tailscale is installed, connected and has HTTPS certificates enabled; `/vibe` then serves the page at `https://<name>.<tailnet>.ts.net:8443` through `tailscale serve`. The audio is heard by your browser's speech service (Apple or Google), not by this hub. Without Tailscale, use the keyboard's mic key or Hold to talk. A notification when Claude finishes (ntfy for Apple Watch and Wear OS) is on the roadmap.

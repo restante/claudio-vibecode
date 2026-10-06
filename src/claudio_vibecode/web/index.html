@@ -53,7 +53,7 @@
   button:active { transform:scale(.98); filter:brightness(.92); }
   button.ok { background:var(--ok); } button.bad { background:var(--bad); } button.dim { background:var(--card); color:var(--text); border:1px solid var(--line); }
   button.hold { background:#7a5cff; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
-  button.hold.down { background:var(--bad); }
+  button.hold.down, #mic.down { background:var(--bad); }
   footer { padding:8px 12px calc(10px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; }
   #chips { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; }
   #text { width:100%; resize:none; max-height:30vh; font:inherit; padding:14px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--text); min-width:0; }
@@ -91,6 +91,9 @@
     <div class="row">
       <button class="bad" id="stop">Stop Claude<small>interrupts what it is doing</small></button>
       <button class="hold" id="voice">Hold to talk</button>
+    </div>
+    <div class="row">
+      <button class="dim" id="mic" hidden>🎤 Dictate<small>speak into this phone</small></button>
     </div>
   </footer>
   <audio id="voiceout" playsinline></audio><audio id="keep" playsinline loop></audio>
@@ -197,6 +200,8 @@ function render() {
   $('mute').hidden = !me || me.muted === null || me.muted === undefined;  // claudio-tts not reporting
   $('mute').textContent = me && !me.muted ? '🔊 Sound on' : '🔇 Muted';
   $('mute').classList.toggle('on', !!me && !me.muted);
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  $('mic').parentElement.hidden = $('mic').hidden = !(snap.mic && window.isSecureContext && SR);
   $('away').textContent = 'Away: ' + (snap.away ? 'on' : 'off');
   $('away').classList.toggle('on', snap.away);
   $('tabs').innerHTML = '';
@@ -272,7 +277,9 @@ $('stop').onclick = () => { if (current) { haptic('warn'); api('/api/cancel', { 
 // One text box, mirrored with the prompt box on the computer: dictation fills it, edits go back.
 const box = $('text');
 let dirty = false, lastPushed = null, pushTimer = null, shownFor = null;
+let dictating = false;  // while true the box belongs to the microphone
 function syncText(remote) {
+  if (dictating) return;
   if (shownFor !== current) { box.value = remote; shownFor = current; dirty = false; lastPushed = remote; }
   else if (remote !== lastPushed && !(dirty && document.activeElement === box)) { box.value = remote; lastPushed = remote; dirty = false; }
   $('submit').disabled = !box.value.trim();
@@ -312,6 +319,29 @@ const up = () => { if (!held) return; held = false; vb.classList.remove('down');
 vb.addEventListener('pointerup', up); vb.addEventListener('pointercancel', up);
 vb.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener('pagehide', up);
+// Dictate: the browser's speech recognition fills the text box (needs https, so Tailscale).
+// The browser vendor's speech service hears the audio; nothing goes through the hub.
+let rec = null;
+function stopDictation() { if (rec) rec.stop(); }
+$('mic').onclick = () => {
+  if (rec) { stopDictation(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR || !current) return;
+  const base = box.value.trim();
+  rec = new SR();
+  rec.continuous = true; rec.interimResults = true; rec.lang = navigator.language || 'en-US';
+  rec.onresult = (e) => {
+    // Safari gives segments without a leading space, so join them ourselves.
+    const parts = [base];
+    for (let i = 0; i < e.results.length; i++) parts.push(e.results[i][0].transcript.trim());
+    box.value = parts.filter(Boolean).join(' '); dirty = true; $('submit').disabled = !box.value.trim();
+  };
+  rec.onerror = (e) => { if (e.error !== 'no-speech' && e.error !== 'aborted') alert(e.error === 'not-allowed' ? 'Allow the microphone for this page in the browser settings.' : 'Dictation error: ' + e.error); };
+  rec.onend = () => { rec = null; dictating = false; $('mic').classList.remove('down'); $('mic').firstChild.textContent = '🎤 Dictate'; haptic('up'); pushText(); };
+  $('mic').classList.add('down'); $('mic').firstChild.textContent = '⏹ Stop dictating'; haptic('down');
+  dictating = true; rec.start();
+};
+window.addEventListener('pagehide', stopDictation);
 boot();
 </script>
 </body>

@@ -170,6 +170,8 @@ class Handler(BaseHTTPRequestHandler):
             if not token:
                 return self._json(403, {"error": "this code is wrong or has expired"})
             cookie = f"{COOKIE}={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000"
+            if self.server.base_url.startswith("https://"):
+                cookie += "; Secure"
             return self._json(200, {"ok": True}, {"Set-Cookie": cookie})
         if path.startswith("/api/mod/") or path.startswith("/api/admin/"):
             if not self._is_mod():
@@ -329,10 +331,11 @@ class Handler(BaseHTTPRequestHandler):
             return
 
 
-def serve(host: str, port: int, base_url: str) -> None:
+def serve(host: str, port: int, base_url: str, mic: bool = False) -> None:
     """Run the hub until it is shut down or idles out."""
     server = Server((host, port))
     server.base_url = base_url
+    server.hub.mic = mic
 
     def watchdog() -> None:
         while True:

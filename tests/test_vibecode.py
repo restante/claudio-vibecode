@@ -333,3 +333,44 @@ def test_mac_speakers_switch_and_listen_survives_a_nap(srv, monkeypatch):
     real = time.time
     monkeypatch.setattr(time, "time", lambda: real() + 100)  # a phone asleep for 100 s
     assert mod(srv, "GET", "/api/mod/listeners")[1]["listening"] is True
+
+
+def test_mic_is_off_unless_the_page_is_served_over_https(srv):
+    headers, _ = pair(srv)
+    assert call(srv, "GET", "/api/state", None, headers)[1]["mic"] is False
+    srv.hub.mic = True
+    assert call(srv, "GET", "/api/state", None, headers)[1]["mic"] is True
+
+
+def _tailscale_says(monkeypatch, payload, code=0):
+    import json
+    import subprocess
+
+    from claudio_vibecode import ctl
+
+    done = subprocess.CompletedProcess([], code, stdout=json.dumps(payload), stderr="")
+    monkeypatch.setattr(ctl.subprocess, "run", lambda *a, **k: done)
+    return ctl.tailscale_https()
+
+
+def test_tailscale_https_needs_a_running_tailnet_with_certificates(monkeypatch):
+    good = {
+        "BackendState": "Running",
+        "Self": {"DNSName": "mac.tail1234.ts.net."},
+        "CertDomains": ["mac.tail1234.ts.net"],
+    }
+    assert _tailscale_says(monkeypatch, good) == "https://mac.tail1234.ts.net:8443"
+    assert _tailscale_says(monkeypatch, {**good, "BackendState": "Stopped"}) is None
+    assert _tailscale_says(monkeypatch, {**good, "CertDomains": []}) is None
+    assert _tailscale_says(monkeypatch, good, code=1) is None
+
+
+def test_tailscale_https_is_none_when_tailscale_is_not_installed(monkeypatch):
+    from claudio_vibecode import ctl
+
+    def missing(*a, **k):
+        raise FileNotFoundError
+
+    monkeypatch.setattr(ctl.subprocess, "run", missing)
+    assert ctl.tailscale_https() is None
+    assert ctl._serve_https(47821) is False

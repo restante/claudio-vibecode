@@ -22,6 +22,7 @@ For vibe coders who don't sit at the monitor all day: start a task, grab a coffe
 | **Send a message** | One text box that mirrors Claude's prompt box. Dictate with the keyboard mic or **Hold to talk**, edit, then **Submit** |
 | **Stop Claude** | One tap interrupts what it is doing |
 | **Approve tool calls** | In *Away* mode Claude's permission asks go to your phone with the exact command. Risky ones (`rm`, `git push`, `curl`, writes outside the project) need a second tap |
+| **Dictate** | Speak into the phone and the text lands in the box. Only shown with [Tailscale](https://tailscale.com) and HTTPS certificates turned on; the browser's own speech service (Apple/Google) hears the audio |
 | **Hold to talk** | Presses Claude Code's voice key on your computer for as long as you hold the button |
 | **Hear Claude** | Claude's voice plays on the phone (needs [claudio-tts](https://github.com/restante/claudio-tts)). Mute the Mac speakers and listen on the phone only |
 | **Feel it** | Haptic feedback on taps, Submit, Stop and approvals (vibration on Android, a light tick on iPhone) |

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **Dictate**: speak into the phone and the text lands in the box. Needs Tailscale with HTTPS certificates;
+  `/vibe` serves the page through `tailscale serve` on port 8443. `status` and `doctor` say why it is off.
+  The browser's speech service (Apple/Google) hears the audio.
+
 ## 0.1.0
 
 First release. Spun off from claudio-tts so it can have its own life cycle.

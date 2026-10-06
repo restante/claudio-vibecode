@@ -75,6 +75,8 @@ def _clip(text: str) -> str:
 
 
 class Hub:
+    mic = False  # set by the server when the page is served over https (Tailscale)
+
     def __init__(self) -> None:
         self.cv = threading.Condition()
         self.version = 0
@@ -324,6 +326,7 @@ class Hub:
                 "away": self.away,
                 "listening": self.listening(),
                 "local": self.local_sound,
+                "mic": self.mic,
                 "audio": [m for m in self.clip_meta if now - m["ts"] < 120],
                 "sessions": sessions,
                 "events": list(self.events)[-SNAPSHOT_EVENTS:],
