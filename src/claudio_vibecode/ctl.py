@@ -92,7 +92,7 @@ def start() -> dict:
         "url": url,
     }
     _info_file().write_text(json.dumps(info))
-    for _ in range(50):  # wait up to 5 s for the port to answer
+    for _ in range(100):  # wait up to 10 s for the port to answer
         try:
             _call("/api/admin/status", port=port, timeout=1)
             return info

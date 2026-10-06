@@ -5,6 +5,7 @@ from __future__ import annotations
 import hmac
 import json
 import os
+import socketserver
 import sys
 import threading
 import time
@@ -24,6 +25,12 @@ LOOPBACK = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
 class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = sys.platform != "win32"  # on Windows it lets a second hub steal the port
+
+    def server_bind(self) -> None:
+        # HTTPServer.server_bind() asks DNS for this host's name, which can stall for a minute on
+        # some networks (seen on macOS CI). Nothing here needs the name.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = str(self.server_address[0]), self.server_address[1]
 
     def __init__(self, address: tuple[str, int], directory=None) -> None:
         super().__init__(address, Handler)
