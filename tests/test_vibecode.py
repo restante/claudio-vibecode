@@ -1,4 +1,5 @@
 import http.client
+import os
 import json
 import threading
 import time
@@ -216,7 +217,7 @@ def test_cli_output_survives_a_legacy_console_encoding(tmp_path):
     import sys
 
     code = "from claudio_vibecode import qr; print(qr.text('http://x.test'))"
-    env = {"PYTHONIOENCODING": "cp1252", "PATH": "", "CLAUDIO_TTS_HOME": str(tmp_path)}
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252", "CLAUDIO_TTS_HOME": str(tmp_path)}
     bad = subprocess.run([sys.executable, "-c", code], capture_output=True, env=env, text=True)
     assert bad.returncode != 0  # the QR really cannot be printed with cp1252 ...
     code = "import sys; from claudio_vibecode import cli; cli.main(['doctor']); "

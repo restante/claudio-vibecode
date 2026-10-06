@@ -58,7 +58,11 @@ jobs:
           "$PY" -m claudio_vibecode start
           "$PY" -m claudio_vibecode qr --no-browser | grep -q "pair="
           "$PY" -m claudio_vibecode status
-          "$PY" -m claudio_tts devices | grep -q phone
+          "$PY" -c "from claudio_tts import sinks; assert 'phone' in sinks.factories(), 'phone output not registered'"
           "$PY" -m claudio_vibecode stop
           ! "$PY" -m claudio_vibecode info
           "$PY" -m claudio_vibecode uninstall-mod
+      - name: Hub log (on failure)
+        if: failure()
+        shell: bash
+        run: cat .ct/home/vibecode/hub.log || true
