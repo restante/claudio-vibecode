@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           uv venv --python 3.12
-          PY=$(ls .venv/bin/python .venv/Scripts/python.exe 2>/dev/null | head -1)
+          PY=$(ls .venv/bin/python .venv/Scripts/python.exe 2>/dev/null | head -1 || true)
           uv pip install --python "$PY" "claudio-tts @ git+https://github.com/restante/claudio-tts@${CLAUDIO_TTS_REF:-main}"
           uv pip install --python "$PY" --no-deps -e .
           uv pip install --python "$PY" segno psutil numpy pytest ruff
@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           uv venv --python 3.12 .ct/venv
-          PY=$(ls .ct/venv/bin/python .ct/venv/Scripts/python.exe 2>/dev/null | head -1)
+          PY=$(ls .ct/venv/bin/python .ct/venv/Scripts/python.exe 2>/dev/null | head -1 || true)
           uv pip install --python "$PY" "claudio-tts @ git+https://github.com/restante/claudio-tts@${CLAUDIO_TTS_REF:-main}"
           uv pip install --python "$PY" .
           "$PY" -m claudio_vibecode install-mod --python "$PY"
