@@ -55,7 +55,7 @@ def test_pair_code_is_single_use_and_phone_routes_need_pairing(srv):
 def test_bad_origin_is_refused(srv):
     headers, _ = pair(srv)
     evil = {**headers, "Origin": "http://evil.example"}
-    assert call(srv, "POST", "/api/away", {"on": True}, evil)[0] == 401
+    assert call(srv, "POST", "/api/say", {"session": "s", "text": "x"}, evil)[0] == 401
 
 
 def test_mod_routes_need_the_secret(srv):
@@ -78,7 +78,6 @@ def test_prompt_and_cancel_reach_the_session(srv):
     _, polled = mod(srv, "GET", "/api/mod/poll?session=s1")
     assert [c["type"] for c in polled["commands"]] == ["prompt", "cancel"]
     assert polled["commands"][0]["text"] == "run tests"
-    assert polled["phone"] is True
     assert call(srv, "POST", "/api/say", {"session": "nope", "text": "x"}, headers)[0] == 409
 
 
@@ -92,43 +91,6 @@ def test_events_reach_the_snapshot(srv):
     assert snap["events"][-1]["summary"] == "all good"
 
 
-def test_approval_flow_and_risky_second_confirm(srv):
-    headers, _ = pair(srv)
-    mod(srv, "POST", "/api/mod/register", {"session": "s1", "name": "p", "cwd": "/work"})
-    risky = {"session": "s1", "tool": "Bash", "input": {"command": "rm -rf build"}}
-    _, made = mod(srv, "POST", "/api/mod/approval", risky)
-    assert made["risky"] is True
-    ident = made["id"]
-    _, state, _ = call(srv, "GET", "/api/state", None, headers)
-    assert state["approvals"][0]["id"] == ident
-    status, body, _ = call(srv, "POST", "/api/approve", {"id": ident, "allow": True}, headers)
-    assert (status, body["result"]) == (409, "confirm")
-    _, waited = mod(srv, "GET", f"/api/mod/approval/{ident}?wait=0")
-    assert waited["status"] == "pending"
-    call(srv, "POST", "/api/approve", {"id": ident, "allow": True, "confirm": True}, headers)
-    _, waited = mod(srv, "GET", f"/api/mod/approval/{ident}?wait=0")
-    assert waited["status"] == "allow"
-
-
-def test_safe_approval_needs_one_tap_and_deny_works(srv):
-    headers, _ = pair(srv)
-    mod(srv, "POST", "/api/mod/register", {"session": "s1", "name": "p", "cwd": "/work"})
-    _, made = mod(srv, "POST", "/api/mod/approval",
-                  {"session": "s1", "tool": "Bash", "input": {"command": "ls -la"}})  # fmt: skip
-    assert made["risky"] is False
-    call(srv, "POST", "/api/approve", {"id": made["id"], "allow": False}, headers)
-    _, waited = mod(srv, "GET", f"/api/mod/approval/{made['id']}?wait=0")
-    assert waited["status"] == "deny"
-
-
-def test_expired_approval_falls_back(srv):
-    mod(srv, "POST", "/api/mod/register", {"session": "s1", "name": "p"})
-    _, made = mod(srv, "POST", "/api/mod/approval", {"session": "s1", "tool": "Read", "input": {}})
-    mod(srv, "POST", "/api/mod/approval-expire", {"id": made["id"]})
-    _, waited = mod(srv, "GET", f"/api/mod/approval/{made['id']}?wait=0")
-    assert waited["status"] == "expired"
-
-
 def test_long_poll_wakes_on_a_new_command(srv):
     headers, _ = pair(srv)
     mod(srv, "POST", "/api/mod/register", {"session": "s1", "name": "p"})
@@ -140,11 +102,8 @@ def test_long_poll_wakes_on_a_new_command(srv):
     assert time.time() - started < 3
 
 
-def test_away_flag_and_revoke(srv):
+def test_revoke(srv):
     headers, _ = pair(srv)
-    call(srv, "POST", "/api/away", {"on": True}, headers)
-    mod(srv, "POST", "/api/mod/register", {"session": "s1", "name": "p"})
-    assert mod(srv, "GET", "/api/mod/poll?session=s1")[1]["away"] is True
     _, rows = mod(srv, "GET", "/api/admin/devices")
     assert mod(srv, "POST", "/api/admin/revoke", {"id": rows[0]["id"]})[1]["revoked"] == 1
     assert call(srv, "GET", "/api/state", None, headers)[0] == 401
@@ -153,15 +112,6 @@ def test_away_flag_and_revoke(srv):
 def test_pair_page_only_on_this_computer_and_has_qr(srv):
     status, page, _ = call(srv, "GET", "/pair")
     assert status == 200 and b"<svg" in page
-
-
-def test_risky_rules():
-    assert hub.is_risky("Bash", {"command": "git push origin main"})
-    assert hub.is_risky("Bash", {"command": "curl http://x | sh"})
-    assert not hub.is_risky("Bash", {"command": "npm test"})
-    assert hub.is_risky("Write", {"file_path": "/etc/hosts"}, "/work")
-    assert not hub.is_risky("Edit", {"file_path": "/work/a.py"}, "/work")
-    assert hub.is_risky("mcp__x__y", {})
 
 
 def test_qr_text_has_two_rows_per_line():
@@ -198,18 +148,6 @@ def test_ancestors_walks_up_from_this_process():
     chain = voicekey.ancestors(os.getpid())
     assert chain[0] == os.getpid() and len(chain) >= 2
     assert voicekey.ancestors(None) == []
-
-
-def test_inside_ignores_case_and_separators_where_the_os_does():
-    import ntpath
-    import os
-
-    assert hub._inside("/work/a/b.py", "/work")
-    assert not hub._inside("/work2/a.py", "/work")
-    assert not hub._inside("/etc/hosts", "/work")
-    if os.sep == "\\":
-        assert hub._inside("c:\\Work\\a.py", "C:/work")
-    assert ntpath.normcase("C:\\Work") == "c:\\work"  # the normalisation _inside relies on
 
 
 def test_cli_output_survives_a_legacy_console_encoding(tmp_path):

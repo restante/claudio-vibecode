@@ -7,20 +7,16 @@ computer: no app, no account, nothing leaves your network.
 /vibe on        start it and show a QR code (also opens a bigger one in your browser)
 /vibe qr        a fresh QR code to pair another phone
 /vibe status    address, paired phones, connected sessions
-/vibe away on   send tool permission asks to the phone (off: normal dialogs at the keyboard)
 /vibe devices   list paired phones      /vibe revoke <id>   remove one
 /vibe off       stop it and close the port
 ```
 
 ## What you get on the phone
 - Every Claude session on the computer, with its transcript, the spoken summaries, and a "show full reply" tap.
-- A message box and quick replies (`continue`, `yes`, `commit it`, ...). Messages arrive as if you typed them.
+- A message box. Messages arrive as if you typed them.
 - **Stop** cancels the running turn.
-- **OK / Deny** for permission asks, only in away mode. The exact command is shown. Risky ones (`rm`, `git push`,
-  `curl`, `sudo`, writes outside the project, MCP tools) need a second tap. If nobody answers within a minute the
-  normal dialog on the computer decides.
-- **Hold to talk** holds the key Claude Code's voice mode listens to (space, with `voice.mode: hold`) on the
-  computer for as long as you press. It presses that key in the front window, so the Claude terminal must be
+- **Tap to speak** (Mic set to PC) holds the key Claude Code's voice mode listens to (space, with `voice.mode: hold`) on the
+  computer from your first tap until the second (90 seconds at most). It presses that key in the front window, so the Claude terminal must be
   focusable and the screen unlocked. On macOS allow your terminal app in System Settings > Privacy & Security >
   Accessibility; on Linux install `xdotool` (X11).
 - `/w` is the same page with huge buttons for a watch browser.
@@ -38,4 +34,4 @@ A paired phone can make Claude run tools on your computer, so treat it like a ke
   [Tailscale](https://tailscale.com): `/vibe status` prints the Tailscale address when it is running.
 
 ## Limits (v1)
-The phone's own microphone (**Dictate**) needs HTTPS, so it only appears when Tailscale is installed, connected and has HTTPS certificates enabled; `/vibe` then serves the page at `https://<name>.<tailnet>.ts.net:8443` through `tailscale serve`. The audio is heard by your browser's speech service (Apple or Google), not by this hub. Without Tailscale, use the keyboard's mic key or Hold to talk. A notification when Claude finishes (ntfy for Apple Watch and Wear OS) is on the roadmap.
+The phone's own microphone (Mic set to Phone, **Tap to speak**) needs HTTPS, so it only appears when Tailscale is installed, connected and has HTTPS certificates enabled; `/vibe` then serves the page at `https://<name>.<tailnet>.ts.net:8443` through `tailscale serve`. The audio is heard by your browser's speech service (Apple or Google), not by this hub. Without Tailscale, use the keyboard's mic key, or set Mic to PC and hold to talk on the computer's mic. A notification when Claude finishes (ntfy for Apple Watch and Wear OS) is on the roadmap.

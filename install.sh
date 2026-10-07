@@ -93,5 +93,5 @@ claudio-vibecode is installed.
   2. In a session type:  /vibe      It starts the hub and shows a QR code.
   3. Scan it with your phone camera (same Wi-Fi). Tap Listen to hear Claude's voice on the phone.
 
-Other commands: /vibe status, /vibe away on, /vibe devices, /vibe off, /vibe update
+Other commands: /vibe status, /vibe devices, /vibe off, /vibe update
 DONE

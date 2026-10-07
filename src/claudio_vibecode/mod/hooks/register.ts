@@ -3,7 +3,7 @@ import type { Hook, Register } from 'claude-code'
 import { parseVibeArgs, summaryOf } from './args'
 
 const USAGE =
-  'Usage: /vibe [on|off|qr|status|devices|away on|off|revoke <id>|update [check|on|off]]'
+  'Usage: /vibe [on|off|qr|status|devices|revoke <id>|update [check|on|off]]'
 
 type Dollar = Parameters<Hook<'turn.start'>>[0]
 
@@ -43,10 +43,9 @@ type PhoneCommand =
   | { type: 'submit'; text?: string }
   | { type: 'setdraft'; text: string }
   | { type: 'mute'; on: boolean }
-type Polled = { commands: PhoneCommand[]; away: boolean; phone: boolean; known: boolean }
+type Polled = { commands: PhoneCommand[]; known: boolean }
 
 let hub: Hub | undefined
-let awayWithPhone = false
 let currentTurn: string | undefined
 let tries = 0
 let busy = false
@@ -124,7 +123,6 @@ async function tick($: Dollar) {
       | Polled
       | undefined
     if (!polled) return
-    awayWithPhone = polled.away && polled.phone
     if (!polled.known) await registerWithHub($)
     for (const command of polled.commands) {
       if (command.type === 'prompt') {
@@ -160,21 +158,6 @@ async function tick($: Dollar) {
   }
 }
 
-// Away mode with a phone paired and recently active: ask the phone instead of the local dialog.
-async function askPhone($: Dollar, tool: string, input: unknown) {
-  const session = await sessionId($)
-  const made = (await hubCall($, 'POST', '/api/mod/approval', { session, tool, input })) as { id: string } | undefined
-  if (!made) return undefined
-  for (let i = 0; i < 6; i++) {
-    const answer = (await hubCall($, 'GET', `/api/mod/approval/${made.id}?wait=10`)) as { status: string } | undefined
-    if (!answer) break
-    if (answer.status === 'allow' || answer.status === 'deny') return answer.status
-    if (answer.status !== 'pending') break
-  }
-  await hubCall($, 'POST', '/api/mod/approval-expire', { id: made.id })
-  return undefined // no answer in time: the normal local dialog decides
-}
-
 // Once a day (the Python side caches), say if a newer release exists. Never installs anything.
 async function noticeUpdate($: Dollar) {
   if (((await $.store.get('updateCheck')) ?? true) !== true) return
@@ -186,20 +169,11 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'vibe',
-      description: 'Control Claude from your phone: /vibe [on|off|qr|status|devices|away|revoke|update]',
+      description: 'Control Claude from your phone: /vibe [on|off|qr|status|devices|revoke|update]',
     })
     $.clock.every(1000, () => tick($))
     await noticeUpdate($)
     return next(e)
-  })
-
-  on('tool.check', async ($, e, next) => {
-    const verdict = await next(e)
-    if (!hub || !awayWithPhone || verdict.decision !== 'ask' || e.tool_use_id === undefined) return verdict
-    const answer = await askPhone($, e.tool, e.input)
-    if (answer === 'allow') return { decision: 'allow', reason: 'Approved from the phone' }
-    if (answer === 'deny') return { decision: 'deny', reason: 'Denied from the phone' }
-    return verdict
   })
 
   on('turn.start', async ($, e, next) => {
@@ -253,7 +227,7 @@ export const register: Register = on => {
       return { text: done?.stdout.trim() || done?.stderr.trim() || 'Could not run the update.' }
     }
     const args =
-      cmd.kind === 'away' ? ['away', cmd.value] : cmd.kind === 'revoke' ? ['revoke', cmd.value] : [cmd.kind]
+      cmd.kind === 'revoke' ? ['revoke', cmd.value] : [cmd.kind]
     const done = await cli($, args)
     return { text: done?.stdout.trim() || done?.stderr.trim() || 'Could not run that.' }
   })

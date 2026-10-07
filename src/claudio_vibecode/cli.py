@@ -69,7 +69,7 @@ def cmd_status(a: argparse.Namespace) -> int:
         return 1
     status = ctl._call("/api/admin/status")
     print(f"Vibecode is on: {status['url']}")
-    print(f"Paired phones: {status['devices']}   Away mode: {'on' if status['away'] else 'off'}")
+    print(f"Paired phones: {status['devices']}")
     print(f"Sessions connected: {', '.join(status['sessions']) or 'none'}")
     tail = ctl._tailscale()
     if tail:
@@ -94,15 +94,6 @@ def cmd_revoke(a: argparse.Namespace) -> int:
     if not _need_hub():
         return 1
     print(f"Removed {ctl._call('/api/admin/revoke', {'id': a.value})['revoked']} device(s).")
-    return 0
-
-
-def cmd_away(a: argparse.Namespace) -> int:
-    if not _need_hub():
-        return 1
-    on = a.value == "on"
-    ctl._call("/api/admin/away", {"on": on})
-    print(f"Away mode {'on: tool approvals go to your phone' if on else 'off'}.")
     return 0
 
 
@@ -189,9 +180,6 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("revoke", help="remove a paired phone")
     p.add_argument("value", help="device id or name")
     p.set_defaults(func=cmd_revoke)
-    p = sub.add_parser("away", help="send tool permission asks to the phone")
-    p.add_argument("value", choices=["on", "off"])
-    p.set_defaults(func=cmd_away)
 
     p = sub.add_parser("update", help="look for a newer release; install it with --yes")
     p.add_argument("--check", action="store_true", help="only look (exit 10 if newer exists)")

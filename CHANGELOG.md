@@ -2,7 +2,17 @@
 
 ## Unreleased
 
-- **Dictate**: speak into the phone and the text lands in the box. Needs Tailscale with HTTPS certificates;
+- **Removed the preset reply pills** (continue, yes, no, ...). Type or speak instead.
+- **Read aloud**: a small speaker icon on each Claude message speaks it through claudio-tts, on the phone or the computer as Output is set. Tap again to stop. Uses claudio-tts's default voice and volume.
+- **Mic and Output toggles** (PC or Phone each) above the Speak button, with the mute icon next to Output.
+  Mic PC: tap to start and tap to stop on the computer's mic. Mic Phone: tap to speak on the phone's mic (needs Tailscale HTTPS).
+  Output Phone: voice on the phone only. Replaces the Hear on phone chip.
+- **Working row**: while Claude is busy, the conversation ends with "Claude is working…" and the time so far, with the Stop button next to it. The Stop button in the footer is gone.
+- **Removed the Computer speakers chip.** Output Phone now keeps the computer quiet.
+- **Removed Approve on phone** (`/vibe away`, OK/Deny cards, the risky-command rules). Use Claude Code's own
+  permission modes (plan, auto and so on) instead; permission asks now show only at the keyboard.
+- **Phone page look**: warm cream and clay colors with light and dark themes. Clearer labels: a speaker icon for voice on or off, *Send* (was Submit).
+- **Speak**: one mic button. Phone mic: speak into the phone and the text lands in the box. Needs Tailscale with HTTPS certificates;
   `/vibe` serves the page through `tailscale serve` on port 8443. `status` and `doctor` say why it is off.
   The browser's speech service (Apple/Google) hears the audio.
 

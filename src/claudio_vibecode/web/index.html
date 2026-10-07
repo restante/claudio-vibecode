@@ -3,63 +3,83 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f1115">
+<meta name="theme-color" content="#faf9f5">
 <link rel="manifest" href="/manifest.webmanifest">
 <title>Claudio vibecode</title>
 <style>
-  :root { --bg:#0f1115; --card:#1a1d24; --line:#2a2f3a; --text:#e9ecf1; --dim:#8b93a3;
-          --accent:#5b8cff; --ok:#2fbf71; --bad:#e5484d; --warn:#f5a524; }
-  @media (prefers-color-scheme: light) {
-    :root { --bg:#f4f5f8; --card:#fff; --line:#dfe2ea; --text:#14161b; --dim:#667085; }
+  :root { --bg:#faf9f5; --card:#fff; --line:#e8e6dc; --text:#141413; --dim:#6b6a64;
+          --accent:#d97757; --ok:#5a8f5f; --bad:#c4574a; --warn:#d4a017; --voice:#6a6bbf;
+          --serif:ui-serif, Georgia, "Times New Roman", serif; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#262624; --card:#30302e; --line:#3d3d3a; --text:#faf9f5; --dim:#a8a69c; }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin:0; background:var(--bg); color:var(--text);
-               font:16px/1.4 system-ui, -apple-system, sans-serif; }
+               font:16px/1.45 system-ui, -apple-system, sans-serif; }
   body { min-height:100dvh; }
-  header { display:flex; flex-wrap:nowrap; gap:8px; align-items:center; padding:10px 12px;
-           overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
-  header::-webkit-scrollbar, #tabs::-webkit-scrollbar, #chips::-webkit-scrollbar { display:none; }
-  header h1 { font-size:15px; margin:0; flex:1 0 auto; padding-right:8px; }
-  @media (max-width: 600px) { header h1 { display:none; } header .chip:first-of-type { margin-left:0; } }
+  header { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 12px; }
+  header::-webkit-scrollbar, #tabs::-webkit-scrollbar { display:none; }
+  header h1 { font:600 18px var(--serif); letter-spacing:-.01em; margin:0; flex:1 0 auto; padding-right:8px; }
+  @media (max-width: 600px) { header { display:none; } }
   .chip { flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px;
           padding:6px 12px; font-size:14px; white-space:nowrap; }
-  .chip.on { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+  .chip.on { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); background:color-mix(in srgb, var(--accent) 10%, var(--card)); }
   .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background:var(--dim); }
   .dot.working { background:var(--warn); } .dot.idle { background:var(--ok); } .dot.off { background:var(--dim); opacity:.4; }
   #tabs { display:flex; gap:8px; padding:8px 12px; overflow-x:auto; scrollbar-width:none; }
   #top { position:sticky; top:0; z-index:5; background:var(--bg); padding-top:env(safe-area-inset-top); border-bottom:1px solid var(--line); }
   #app { display:flex; flex-direction:column; min-height:100dvh; }
   #feed { flex:1; min-height:30vh; padding:8px 12px; display:flex; flex-direction:column; gap:8px; }
-  .msg { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 12px;
+  .msg { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px;
          white-space:pre-wrap; word-break:break-word; }
   .msg.prompt { align-self:flex-end; background:var(--accent); border-color:var(--accent); color:#fff; max-width:88%; }
+  .msg { position:relative; }
+  .say { position:absolute; top:6px; right:8px; background:none; color:var(--dim); padding:4px; border-radius:999px; line-height:0; }
+  .say.on { color:var(--accent); }
+  .say .ic { width:16px; height:16px; }
   .msg.summary { border-left:4px solid var(--ok); }
   .msg small { display:block; color:var(--dim); margin-bottom:2px; }
-  .msg.prompt small { color:#dbe5ff; }
+  .msg.prompt small { color:#fbe3d9; }
   .msg.info { background:none; border:none; color:var(--dim); font-size:13px; text-align:center; }
   .full { color:var(--dim); font-size:13px; margin-top:6px; text-decoration:underline; }
-  #ask { padding:0 12px; }
-  #draft { margin:0 12px; background:var(--card); border:2px solid var(--ok); border-radius:16px; padding:10px 12px; }
+  #draft { margin:0 12px; background:var(--card); border:2px solid var(--ok); border-radius:12px; padding:10px 12px; }
   #draft small { color:var(--dim); display:block; margin-bottom:4px; }
   #draft .text { white-space:pre-wrap; word-break:break-word; max-height:25vh; overflow:auto; margin-bottom:10px; }
   button small { display:block; font-weight:400; font-size:12px; opacity:.85; margin-top:2px; }
   button:disabled { opacity:.35; }
-  .approval { background:var(--card); border:2px solid var(--warn); border-radius:16px; padding:12px; margin:6px 0; }
-  .approval pre { margin:6px 0 10px; max-height:30vh; overflow:auto; white-space:pre-wrap; word-break:break-all;
-                  font:13px ui-monospace, monospace; background:var(--bg); padding:8px; border-radius:8px; }
-  .approval .risk { color:var(--bad); font-weight:600; font-size:13px; }
+  .modes { align-items:stretch; }
+  .modes .seg { flex:1; }
+  .ic { width:1.2em; height:1.2em; vertical-align:-0.2em; }
+  .seg .ic { width:20px; height:20px; vertical-align:middle; }
+  .lbl { align-self:center; color:var(--dim); font-size:13px; }
+  .modes { gap:6px; }
+  .modes .seg button { padding:8px 10px; }
+  #mute { font-size:20px; padding:4px 16px; }
+  .seg { display:flex; border:1px solid var(--line); border-radius:999px; background:var(--card); padding:2px; }
+  .seg button { flex:1; background:none; color:var(--dim); padding:8px 12px; font-size:15px; border-radius:999px; white-space:nowrap; }
+  .seg button.on { background:color-mix(in srgb, var(--accent) 16%, var(--card)); color:var(--text); box-shadow:inset 0 0 0 1px var(--accent); }
+  .note { font-size:13px; color:var(--dim); } .note[hidden] { display:none; }
   .row { display:flex; gap:10px; }
-  button { font:inherit; border:0; border-radius:16px; padding:16px; font-weight:600; color:#fff; background:var(--accent); flex:1; touch-action:manipulation; }
+  .row[hidden] { display:none; }
+  .busy { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px 8px 8px 12px; color:var(--dim); }
+  .busy .label { flex:1; }
+  .busy button { flex:none; padding:8px 16px; font-size:14px; }
+  .pulse { width:10px; height:10px; border-radius:50%; background:var(--accent); animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:.3; transform:scale(.8); } 50% { opacity:1; transform:scale(1.1); } }
+  button { font:inherit; border:0; border-radius:12px; padding:16px; font-weight:500; color:#fff; background:var(--accent); flex:1; touch-action:manipulation; }
   button:active { transform:scale(.98); filter:brightness(.92); }
   button.ok { background:var(--ok); } button.bad { background:var(--bad); } button.dim { background:var(--card); color:var(--text); border:1px solid var(--line); }
-  button.hold { background:#7a5cff; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
-  button.hold.down, #mic.down { background:var(--bad); }
-  footer { padding:8px 12px calc(10px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; }
-  #chips { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; }
-  #text { width:100%; resize:none; max-height:30vh; font:inherit; padding:14px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--text); min-width:0; }
+  button.hold { background:var(--voice); user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+  button.hold.down { background:var(--bad); }
+  footer { position:sticky; bottom:0; z-index:5; background:var(--bg); padding:8px 12px calc(10px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; }
+  .boxwrap { position:relative; }
+  #clear { position:absolute; top:8px; right:8px; flex:none; padding:3px 10px; font-size:12px; border-radius:999px; }
+  #clear[hidden] { display:none; }
+  #text { width:100%; resize:none; max-height:30vh; font:inherit; padding:14px 64px 14px 14px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--text); min-width:0; }
   #pair, #err { padding:32px 20px; text-align:center; }
+  #pair h2 { font-family:var(--serif); font-weight:600; }
   .hidden { display:none !important; }
-  body.watch #tabs, body.watch #chips, body.watch header h1 { display:none; }
+  body.watch #tabs, body.watch header h1 { display:none; }
   body.watch button { padding:28px 10px; font-size:20px; }
 </style>
 </head>
@@ -70,39 +90,62 @@
 </div>
 <div id="app" class="hidden">
   <div id="top">
+  <div id="tabs"></div>
   <header>
     <h1>Claudio vibecode</h1>
-    <button class="chip" id="mute">Sound</button>
-    <button class="chip" id="listen">🎧 Listen: off</button>
-    <button class="chip" id="local">🖥 Mac speakers</button>
-    <button class="chip" id="away" aria-pressed="false">Away: off</button>
   </header>
-  <div id="tabs"></div>
   </div>
   <div id="feed"></div>
-  <div id="ask"></div>
   <footer>
-    <div id="chips"></div>
-    <textarea id="text" rows="2" placeholder="Message Claude. Hold to talk fills this; edit it, then Submit." autocomplete="off"></textarea>
-    <div class="row">
-      <button class="dim" id="clear" style="flex:0 0 auto;padding:20px 18px">Clear</button>
-      <button class="ok" id="submit" style="font-size:20px;padding:20px">Submit<small>sends it, like Enter</small></button>
+    <div class="boxwrap">
+      <textarea id="text" rows="2" placeholder="Message Claude. Type or tap Speak, then Send." autocomplete="off"></textarea>
+      <button class="dim" id="clear" hidden aria-label="Clear the message">Clear</button>
     </div>
     <div class="row">
-      <button class="bad" id="stop">Stop Claude<small>interrupts what it is doing</small></button>
-      <button class="hold" id="voice">Hold to talk</button>
+      <button class="ok" id="submit" style="font-size:20px;padding:20px">Send<small>same as pressing Enter</small></button>
+    </div>
+    <div class="row modes">
+      <span class="lbl" data-i="mic" title="Microphone for Speak"></span>
+      <div class="seg" role="group" aria-label="Which microphone Speak uses">
+        <button id="micPC" title="Tap to speak with the computer's mic" data-i="monitor"></button>
+        <button id="micPhone" title="Tap to speak with this phone's mic" data-i="smartphone"></button>
+      </div>
+      <span class="lbl" data-i="headphones" title="Where Claude's voice plays"></span>
+      <div class="seg" role="group" aria-label="Where Claude's voice plays">
+        <button id="outPC" title="Claude speaks on the computer" data-i="monitor"></button>
+        <button id="outPhone" title="Claude speaks on this phone only" data-i="smartphone"></button>
+      </div>
+      <button class="chip" id="mute" title="Mute Claude's voice for this session" aria-label="Mute Claude's voice for this session" data-i="volume-2"></button>
     </div>
     <div class="row">
-      <button class="dim" id="mic" hidden>🎤 Dictate<small>speak into this phone</small></button>
+      <button class="hold" id="voice"></button>
     </div>
+    <div class="note" id="micnote" hidden>The phone's mic needs Tailscale with HTTPS. Use your keyboard's mic key, or set Mic to PC.</div>
   </footer>
   <audio id="voiceout" playsinline></audio><audio id="keep" playsinline loop></audio>
 </div>
 <script>
 const $ = (id) => document.getElementById(id);
-const QUICK = ['continue', 'yes', 'no', 'commit it', 'explain', 'run the tests'];
-let firstPaint = false;
-let snap = null, current = null, stream = null, confirming = {};
+let firstPaint = false, phoneMic = false;
+// Lucide icons (lucide.dev, ISC licence), inlined so the page makes no external requests.
+const ICONS = {
+  monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
+  smartphone: '<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>',
+  mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
+  headphones: '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
+  'volume-2': '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  'volume-x': '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/>',
+};
+const ic = (n) => '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[n] + '</svg>';
+document.querySelectorAll('[data-i]').forEach((el) => { el.innerHTML = ic(el.dataset.i); });
+// Two independent choices: which microphone Speak uses, and where Claude's voice plays ('pc' | 'phone').
+let micSel = 'pc', outSel = 'pc';
+try {
+  const old = localStorage.getItem('mode') || (localStorage.getItem('listen') ? 'phone' : 'pc');
+  const norm = (v) => (v === 'phone' ? 'phone' : 'pc');
+  micSel = norm(localStorage.getItem('mic') || old); outSel = norm(localStorage.getItem('out') || old);
+} catch (e) {}
+let snap = null, current = null, stream = null;
 if (location.pathname === '/w') document.body.classList.add('watch');
 
 // Haptics: Android vibrates; iPhone Safari has no vibrate API, but toggling a hidden switch input clicks.
@@ -116,7 +159,7 @@ function haptic(kind) {
   let t = 0;
   pattern.forEach((ms, i) => { if (i % 2 === 0) setTimeout(() => { try { tick.click(); } catch (e) {} }, t); t += ms; });
 }
-document.addEventListener('pointerdown', (e) => { if (e.target.closest('.chip:not(#mute), #clear')) haptic('tap'); }, true);
+document.addEventListener('pointerdown', (e) => { if (e.target.closest('.chip:not(#mute), .seg button, #clear')) haptic('tap'); }, true);
 
 async function api(path, body) {
   const res = await fetch(path, body === undefined ? {} : {
@@ -162,7 +205,7 @@ async function setListening(on) {
   listening = on;
   if (on) {
     keep.src = silentWav(1);  // a silent loop keeps the page alive with the screen off
-    try { await keep.play(); out.src = silentWav(1); await out.play(); } catch (e) { listening = false; $('listen').textContent = '🎧 Tap again'; haptic('error'); return; }
+    try { await keep.play(); out.src = silentWav(1); await out.play(); } catch (e) { listening = false; haptic('error'); render(); return; }
     if (listening) {
       if (snap) snap.audio.forEach((c) => played.add(c.id));
       const tell = () => api('/api/listen', { on: true });
@@ -174,8 +217,26 @@ async function setListening(on) {
   }
   haptic('ok'); render();
 }
-$('listen').onclick = () => { try { localStorage.setItem('listen', listening ? '' : '1'); } catch (e) {} setListening(!listening); };
-$('local').onclick = () => { api('/api/localsound', { on: !snap.local }); haptic('ok'); };
+function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+async function setOut(next) {
+  outSel = next; save('out', next);
+  if (next === 'phone') { await setListening(true); if (listening) api('/api/localsound', { on: false }); }
+  else { await setListening(false); api('/api/localsound', { on: true }); }
+  render();
+}
+function setMic(next) { micSel = next; save('mic', next); stopDictation(); release(); render(); }
+$('micPC').onclick = () => setMic('pc');
+$('micPhone').onclick = () => setMic('phone');
+$('outPC').onclick = () => setOut('pc');
+$('outPhone').onclick = () => setOut('phone');
+// After a reload, phone audio needs a tap before the browser allows sound: the first tap anywhere resumes it.
+let resuming = null;
+function resumeOut() {
+  if (outSel !== 'phone' || listening) return resuming;
+  if (!resuming) resuming = setListening(true).then(() => { if (listening) api('/api/localsound', { on: false }); }).finally(() => { resuming = null; });
+  return resuming;
+}
+document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#outPC')) resumeOut(); }, true);
 function takeClips() {
   if (!listening || !snap) return;
   snap.audio.forEach((c) => { if (!played.has(c.id)) { played.add(c.id); clips.push('/api/audio/' + c.id); } });
@@ -184,11 +245,10 @@ function takeClips() {
 
 function render() {
   if (!snap) return;
-  let wanted = false; try { wanted = !!localStorage.getItem('listen'); } catch (e) {}
-  $('listen').textContent = listening ? '🎧 Listening' : wanted ? '🎧 Tap to resume' : '🎧 Listen: off';
-  $('local').textContent = snap.local ? '🖥 Mac speakers: on' : '🖥 Mac speakers: off';
-  $('local').classList.toggle('on', snap.local);
-  $('listen').classList.toggle('on', listening);
+  $('micPC').classList.toggle('on', micSel === 'pc');
+  $('micPhone').classList.toggle('on', micSel === 'phone');
+  $('outPC').classList.toggle('on', outSel === 'pc');
+  $('outPhone').classList.toggle('on', outSel === 'phone');
   takeClips();
   if (!current) { try { current = localStorage.getItem('session'); } catch (e) {} }
   if (!current || !sessionOf(current)) {
@@ -198,12 +258,15 @@ function render() {
   }
   const me = sessionOf(current);
   $('mute').hidden = !me || me.muted === null || me.muted === undefined;  // claudio-tts not reporting
-  $('mute').textContent = me && !me.muted ? '🔊 Sound on' : '🔇 Muted';
+  const voiceOn = !!me && !me.muted;
+  $('mute').innerHTML = ic(voiceOn ? 'volume-2' : 'volume-x');
+  $('mute').title = $('mute').ariaLabel = voiceOn ? 'Voice on. Tap to mute this session' : 'Voice muted. Tap to unmute this session';
   $('mute').classList.toggle('on', !!me && !me.muted);
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  $('mic').parentElement.hidden = $('mic').hidden = !(snap.mic && window.isSecureContext && SR);
-  $('away').textContent = 'Away: ' + (snap.away ? 'on' : 'off');
-  $('away').classList.toggle('on', snap.away);
+  phoneMic = !!(micSel === 'phone' && snap.mic && window.isSecureContext && SR);
+  const noMic = micSel === 'phone' && !phoneMic;
+  vb.parentElement.hidden = noMic; $('micnote').hidden = !noMic;
+  if (!held && !rec) idleSpeak();
   $('tabs').innerHTML = '';
   const names = snap.sessions.map((s) => s.name);
   [...snap.sessions].sort((a, b) => b.last - a.last).forEach((s) => {
@@ -219,13 +282,44 @@ function render() {
   const near = !firstPaint || doc.scrollHeight - window.scrollY - window.innerHeight < 200;
   firstPaint = true;
   $('feed').innerHTML = '';
-  snap.events.filter((e) => e.session === current).forEach(addEvent);
-  if (near) window.scrollTo(0, doc.scrollHeight);
+  const mine = snap.events.filter((e) => e.session === current);
+  mine.forEach(addEvent);
   const cur = sessionOf(current);
+  if (cur && cur.status === 'working') addWorking(mine);
+  if (near) window.scrollTo(0, doc.scrollHeight);
   syncText(cur ? cur.draft || '' : '');
-  $('stop').disabled = !cur || cur.status !== 'working';
-  renderAsks();
-  renderChips();
+}
+// Claude is busy: a row at the end of the feed, with the Stop button next to it.
+let workingSince = 0;
+function addWorking(events) {
+  const lastPrompt = [...events].reverse().find((e) => e.kind === 'prompt');
+  workingSince = lastPrompt ? lastPrompt.ts : 0;
+  const d = document.createElement('div'); d.className = 'busy';
+  d.innerHTML = '<span class="pulse"></span><span class="label">Claude is working… <span id="elapsed"></span></span>';
+  const stop = document.createElement('button'); stop.className = 'bad'; stop.textContent = 'Stop';
+  stop.setAttribute('aria-label', 'Stop Claude');
+  stop.onclick = () => { haptic('warn'); api('/api/cancel', { session: current }); };
+  d.append(stop); $('feed').append(d); tickElapsed();
+}
+function tickElapsed() {
+  const el = $('elapsed'); if (!el) return;
+  const sec = Math.max(0, Math.round(Date.now() / 1000 - workingSince));
+  el.textContent = workingSince ? (sec >= 60 ? Math.floor(sec / 60) + 'm ' : '') + (sec % 60) + 's' : '';
+}
+setInterval(tickElapsed, 1000);
+// Read one message aloud through claudio-tts: on the phone when Output is Phone, else on the computer. Tap again to stop.
+let speakingBtn = null, speakingTimer = null;
+function speakDone() { clearTimeout(speakingTimer); if (speakingBtn) speakingBtn.classList.remove('on'); speakingBtn = null; }
+async function speakHere(text, btn) {
+  haptic('tap');
+  const wasThis = speakingBtn === btn;
+  speakDone();
+  if (wasThis) { api('/api/speak', { session: current, stop: true }); return; }
+  speakingBtn = btn; btn.classList.add('on');
+  speakingTimer = setTimeout(speakDone, Math.max(3000, text.length * 70));  // rough length of the speech
+  await resumeOut();
+  const r = await api('/api/speak', { session: current, text });
+  if (r.status !== 200) { speakDone(); haptic('error'); }
 }
 function addEvent(e) {
   const d = document.createElement('div');
@@ -235,6 +329,10 @@ function addEvent(e) {
     d.className = 'msg' + (e.summary ? ' summary' : '');
     d.innerHTML = '<small>Claude ' + time + '</small>';
     const t = document.createElement('div'); t.textContent = e.summary || e.text; d.append(t);
+    const sp = document.createElement('button'); sp.className = 'say'; sp.innerHTML = ic('volume-2');
+    sp.title = sp.ariaLabel = 'Read this message aloud';
+    sp.onclick = () => speakHere(t.textContent, sp);
+    d.append(sp);
     if (e.summary && e.summary !== e.text) {
       const f = document.createElement('div'); f.className = 'full'; f.textContent = 'Show full reply';
       f.onclick = () => { t.textContent = t.textContent === e.summary ? e.text : e.summary; f.textContent = t.textContent === e.summary ? 'Show full reply' : 'Show summary'; };
@@ -243,37 +341,6 @@ function addEvent(e) {
   } else { d.className = 'msg info'; d.textContent = e.text; }
   $('feed').append(d);
 }
-function renderAsks() {
-  $('ask').innerHTML = '';
-  snap.approvals.filter((a) => a.session === current).forEach((a) => {
-    const box = document.createElement('div'); box.className = 'approval';
-    const cmd = typeof a.input === 'object' && a.input ? (a.input.command || a.input.file_path || JSON.stringify(a.input, null, 1)) : String(a.input);
-    box.innerHTML = '<b>Claude wants to use ' + a.tool + '</b>' + (a.risky ? ' <span class="risk">careful: tap OK twice</span>' : '');
-    const pre = document.createElement('pre'); pre.textContent = cmd; box.append(pre);
-    const row = document.createElement('div'); row.className = 'row';
-    const no = document.createElement('button'); no.className = 'bad'; no.textContent = 'Deny';
-    no.onclick = () => { haptic('warn'); api('/api/approve', { id: a.id, allow: false }); };
-    const ok = document.createElement('button'); ok.className = 'ok';
-    ok.textContent = confirming[a.id] ? 'Confirm OK' : 'OK';
-    ok.onclick = async () => {
-      const r = await api('/api/approve', { id: a.id, allow: true, confirm: !!confirming[a.id] });
-      haptic(r.status === 409 ? 'warn' : 'ok');
-      if (r.status === 409) { confirming[a.id] = true; renderAsks(); }
-    };
-    row.append(no, ok); box.append(row); $('ask').append(box);
-  });
-}
-function renderChips() {
-  if ($('chips').dataset.done) return; $('chips').dataset.done = 1;
-  QUICK.forEach((q) => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = q; b.onclick = () => send(q); $('chips').append(b); });
-}
-async function send(text) {
-  if (!current || !text.trim()) return;
-  const r = await api('/api/say', { session: current, text });
-  if (r.status !== 200) { alert(r.data.error || 'Could not send'); return; }
-  $('text').value = '';
-}
-$('stop').onclick = () => { if (current) { haptic('warn'); api('/api/cancel', { session: current }); } };
 // One text box, mirrored with the prompt box on the computer: dictation fills it, edits go back.
 const box = $('text');
 let dirty = false, lastPushed = null, pushTimer = null, shownFor = null;
@@ -282,7 +349,7 @@ function syncText(remote) {
   if (dictating) return;
   if (shownFor !== current) { box.value = remote; shownFor = current; dirty = false; lastPushed = remote; }
   else if (remote !== lastPushed && !(dirty && document.activeElement === box)) { box.value = remote; lastPushed = remote; dirty = false; }
-  $('submit').disabled = !box.value.trim();
+  refresh();
 }
 function pushText() {
   clearTimeout(pushTimer);
@@ -291,39 +358,51 @@ function pushText() {
   return api('/api/draft', { session: current, text: box.value });
 }
 box.addEventListener('input', () => {
-  dirty = true; $('submit').disabled = !box.value.trim();
+  dirty = true; refresh();
   clearTimeout(pushTimer); pushTimer = setTimeout(pushText, 400);
 });
 $('submit').onclick = async () => {
   const text = box.value.trim();
   if (!current || !text) return;
   clearTimeout(pushTimer);
-  box.value = ''; lastPushed = ''; dirty = false; $('submit').disabled = true;
+  box.value = ''; lastPushed = ''; dirty = false; refresh();
   const r = await api('/api/submit', { session: current, text });
   haptic(r.status === 200 ? 'ok' : 'error');
-  if (r.status !== 200) { box.value = text; $('submit').disabled = false; alert(r.data.error || 'Could not send'); }
+  if (r.status !== 200) { box.value = text; refresh(); alert(r.data.error || 'Could not send'); }
 };
-$('clear').onclick = () => { box.value = ''; $('submit').disabled = true; pushText(); };
+$('clear').onclick = () => { box.value = ''; refresh(); pushText(); box.blur(); };
+function refresh() { $('submit').parentElement.hidden = !box.value.trim(); $('clear').hidden = !box.value; }
 $('mute').onclick = () => { const me = sessionOf(current); if (me) api('/api/mute', { session: current, on: !me.muted }).then(() => haptic('ok')); };
-$('away').onclick = () => api('/api/away', { on: !snap.away });
 
-// Hold to talk: press = hold Claude's voice key on the computer, release = let go.
+// Speak: one button, tap to start, tap to stop. Phone mic (https): the browser listens. Computer mic: the hub
+// holds Claude's voice key on the computer until the second tap.
 let held = false;
 async function voice(action) {
   const r = await api('/api/voice', { session: current, action });
   if (r.status !== 200 && action === 'down') { held = false; $('voice').classList.remove('down'); alert(r.data.error || 'Voice key not available'); }
 }
 const vb = $('voice');
-vb.addEventListener('pointerdown', (e) => { e.preventDefault(); if (held || !current) return; held = true; vb.classList.add('down'); haptic('down'); vb.textContent = 'Listening… release to stop'; vb.setPointerCapture(e.pointerId); voice('down'); });
-const up = () => { if (!held) return; held = false; vb.classList.remove('down'); vb.textContent = 'Hold to talk'; voice('up'); haptic('up'); };
-vb.addEventListener('pointerup', up); vb.addEventListener('pointercancel', up);
+function idleSpeak() {
+  vb.innerHTML = ic('mic') + (phoneMic ? ' Tap to speak<small>uses this phone\'s mic</small>' : ' Tap to speak<small>uses the computer\'s mic</small>');
+}
+let heldTimer = null;
+const release = () => { if (!held) return; held = false; clearTimeout(heldTimer); vb.classList.remove('down'); idleSpeak(); voice('up'); haptic('up'); };
+vb.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  if (phoneMic) { toggleDictation(); return; }
+  if (held) { release(); return; }
+  if (!current) return;
+  held = true; vb.classList.add('down'); haptic('down'); vb.innerHTML = ic('mic') + ' Listening… tap to stop';
+  heldTimer = setTimeout(release, 85000);  // the hub lets go of the key after 90 s
+  voice('down');
+});
 vb.addEventListener('contextmenu', (e) => e.preventDefault());
-window.addEventListener('pagehide', up);
-// Dictate: the browser's speech recognition fills the text box (needs https, so Tailscale).
+window.addEventListener('pagehide', release);
+// Phone mic: the browser's speech recognition fills the text box (needs https, so Tailscale).
 // The browser vendor's speech service hears the audio; nothing goes through the hub.
 let rec = null;
 function stopDictation() { if (rec) rec.stop(); }
-$('mic').onclick = () => {
+function toggleDictation() {
   if (rec) { stopDictation(); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR || !current) return;
@@ -334,13 +413,13 @@ $('mic').onclick = () => {
     // Safari gives segments without a leading space, so join them ourselves.
     const parts = [base];
     for (let i = 0; i < e.results.length; i++) parts.push(e.results[i][0].transcript.trim());
-    box.value = parts.filter(Boolean).join(' '); dirty = true; $('submit').disabled = !box.value.trim();
+    box.value = parts.filter(Boolean).join(' '); dirty = true; refresh();
   };
   rec.onerror = (e) => { if (e.error !== 'no-speech' && e.error !== 'aborted') alert(e.error === 'not-allowed' ? 'Allow the microphone for this page in the browser settings.' : 'Dictation error: ' + e.error); };
-  rec.onend = () => { rec = null; dictating = false; $('mic').classList.remove('down'); $('mic').firstChild.textContent = '🎤 Dictate'; haptic('up'); pushText(); };
-  $('mic').classList.add('down'); $('mic').firstChild.textContent = '⏹ Stop dictating'; haptic('down');
+  rec.onend = () => { rec = null; dictating = false; vb.classList.remove('down'); idleSpeak(); haptic('up'); pushText(); };
+  vb.classList.add('down'); vb.textContent = '⏹ Tap to stop'; haptic('down');
   dictating = true; rec.start();
-};
+}
 window.addEventListener('pagehide', stopDictation);
 boot();
 </script>

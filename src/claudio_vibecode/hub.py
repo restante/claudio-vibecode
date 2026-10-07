@@ -1,10 +1,8 @@
-"""In-memory state of the remote: sessions, transcript, queued commands, pending approvals."""
+"""In-memory state of the remote: sessions, transcript, queued commands, audio clips."""
 
 from __future__ import annotations
 
 import json
-import os
-import re
 import threading
 import time
 import uuid
@@ -14,9 +12,7 @@ MAX_EVENTS = 200
 SNAPSHOT_EVENTS = 80
 TEXT_LIMIT = 3000
 STALE_AFTER = 30  # seconds without a poll before a session shows as offline
-APPROVAL_TTL = 180
 LISTEN_TTL = 120  # Listen survives a phone that sleeps or reloads for this long
-PHONE_RECENT = 300  # a phone counts as "there" for this long after its last request
 
 
 def session_title(pid: int) -> str:
@@ -32,32 +28,6 @@ def session_title(pid: int) -> str:
         if isinstance(name, str) and name.strip():
             return name.strip()
     return ""
-
-
-RISKY_BASH = re.compile(
-    r"\b(rm|sudo|su|dd|mkfs|chmod|chown|curl|wget|nc|ssh|scp|rsync|kill|killall|pkill|"
-    r"git\s+(push|reset|clean|checkout\s+--|branch\s+-D)|npm\s+publish|docker|brew|pip|npm\s+i)\b"
-    r"|[|;&]\s*(sh|bash|zsh)\b|>\s*/|\|\s*sh\b|`|\$\("
-)
-
-
-def is_risky(tool: str, tool_input: object, cwd: str = "") -> bool:
-    """True when approving from a phone should need a second confirm."""
-    data = tool_input if isinstance(tool_input, dict) else {}
-    if tool == "Bash":
-        return bool(RISKY_BASH.search(str(data.get("command", ""))))
-    if tool in {"Write", "Edit", "MultiEdit", "NotebookEdit"}:
-        path = str(data.get("file_path", ""))
-        return not path or (bool(cwd) and not _inside(path, cwd))
-    if tool.startswith("mcp__") or tool in {"WebFetch", "Task", "Agent"}:
-        return True
-    return False
-
-
-def _inside(path: str, folder: str) -> bool:
-    norm = lambda p: os.path.normcase(os.path.normpath(p))  # noqa: E731 - Windows: case, slashes
-    root = norm(folder)
-    return norm(path) == root or norm(path).startswith(root.rstrip("\\/") + os.sep)
 
 
 def tts_muted(session: str) -> bool | None:
@@ -83,8 +53,6 @@ class Hub:
         self.sessions: dict[str, dict] = {}
         self.events: deque[dict] = deque(maxlen=MAX_EVENTS)
         self.commands: dict[str, deque[dict]] = {}
-        self.approvals: dict[str, dict] = {}
-        self.away = False
         self.phone_seen = 0.0
         self.mod_seen = 0.0
         self._seq = 0
@@ -173,7 +141,7 @@ class Hub:
             return True
 
     def poll(self, session: str, wait: float = 0.0) -> dict:
-        """Mod side: queued commands for this session, plus the away/phone flags."""
+        """Mod side: queued commands for this session."""
         deadline = time.time() + wait
         with self.cv:
             self.mod_seen = time.time()
@@ -204,8 +172,7 @@ class Hub:
             self._bump()
 
     def _poll_reply(self, commands: list[dict], known: bool = True) -> dict:
-        phone = time.time() - self.phone_seen < PHONE_RECENT
-        return {"commands": commands, "away": self.away, "phone": phone, "known": known}
+        return {"commands": commands, "known": known}
 
     # ---- audio to the phone ----
     def add_clip(self, session: str, wav: bytes) -> str:
@@ -238,80 +205,13 @@ class Hub:
     def listening(self) -> bool:
         return time.time() < self.listen_until
 
-    # ---- approvals ----
-    def create_approval(self, session: str, tool: str, tool_input: object) -> dict:
-        with self.cv:
-            cwd = self.sessions.get(session, {}).get("cwd", "")
-            approval = {
-                "id": uuid.uuid4().hex[:12],
-                "session": session,
-                "tool": tool,
-                "input": tool_input,
-                "risky": is_risky(tool, tool_input, cwd),
-                "status": "pending",
-                "ts": time.time(),
-            }
-            self.approvals[approval["id"]] = approval
-            self._bump()
-        self.add_event(
-            session, "approval", f"{tool}: {_describe(tool_input)}", approval=approval["id"]
-        )
-        return approval
-
-    def decide(self, ident: str, allow: bool, confirm: bool = False) -> str:
-        """Phone side. Returns 'ok', 'gone' or 'confirm' (risky: tap again to confirm)."""
-        with self.cv:
-            approval = self.approvals.get(ident)
-            if not approval or approval["status"] != "pending":
-                return "gone"
-            if allow and approval["risky"] and not confirm:
-                return "confirm"
-            approval["status"] = "allow" if allow else "deny"
-            self._bump()
-        self.add_event(
-            approval["session"], "info", f"{'Approved' if allow else 'Denied'}: {approval['tool']}"
-        )
-        return "ok"
-
-    def expire_approval(self, ident: str) -> None:
-        with self.cv:
-            approval = self.approvals.get(ident)
-            if approval and approval["status"] == "pending":
-                approval["status"] = "expired"
-                self._bump()
-
-    def wait_approval(self, ident: str, wait: float) -> str:
-        deadline = time.time() + wait
-        with self.cv:
-            while True:
-                approval = self.approvals.get(ident)
-                if not approval:
-                    return "gone"
-                if approval["status"] != "pending":
-                    return approval["status"]
-                if time.time() - approval["ts"] > APPROVAL_TTL:
-                    approval["status"] = "expired"
-                    self._bump()
-                    return "expired"
-                left = deadline - time.time()
-                if left <= 0:
-                    return "pending"
-                self.cv.wait(min(left, 1.0))
-
     # ---- phone side views ----
     def touch_phone(self) -> None:
         self.phone_seen = time.time()
 
-    def set_away(self, on: bool) -> None:
-        with self.cv:
-            self.away = on
-            self._bump()
-
     def snapshot(self) -> dict:
         with self.cv:
             now = time.time()
-            for ident in [i for i, a in self.approvals.items() if now - a["ts"] > 3600]:
-                del self.approvals[ident]
             sessions = [
                 {
                     **s,
@@ -323,14 +223,12 @@ class Hub:
             ]
             return {
                 "version": self.version,
-                "away": self.away,
                 "listening": self.listening(),
                 "local": self.local_sound,
                 "mic": self.mic,
                 "audio": [m for m in self.clip_meta if now - m["ts"] < 120],
                 "sessions": sessions,
                 "events": list(self.events)[-SNAPSHOT_EVENTS:],
-                "approvals": [a for a in self.approvals.values() if a["status"] == "pending"],
             }
 
     def wait_change(self, version: int, wait: float) -> int:
@@ -342,11 +240,3 @@ class Hub:
                     break
                 self.cv.wait(left)
             return self.version
-
-
-def _describe(tool_input: object) -> str:
-    if isinstance(tool_input, dict):
-        for key in ("command", "file_path", "url", "pattern", "description"):
-            if key in tool_input:
-                return str(tool_input[key])[:600]
-    return str(tool_input)[:600]

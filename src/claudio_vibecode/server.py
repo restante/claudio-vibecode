@@ -6,6 +6,7 @@ import hmac
 import json
 import os
 import socketserver
+import subprocess
 import sys
 import threading
 import time
@@ -142,10 +143,6 @@ class Handler(BaseHTTPRequestHandler):
             session = query.get("session", [""])[0]
             wait = min(float(query.get("wait", ["0"])[0]), 25.0)
             return self._json(200, self.server.hub.poll(session, wait))
-        if path.startswith("/api/mod/approval/") and self._is_mod():
-            ident = path.rsplit("/", 1)[1]
-            wait = min(float(query.get("wait", ["0"])[0]), 25.0)
-            return self._json(200, {"status": self.server.hub.wait_approval(ident, wait)})
         if path == "/api/admin/devices" and self._is_mod():
             return self._json(200, self.server.devices.listing())
         if path == "/api/admin/status" and self._is_mod():
@@ -180,6 +177,28 @@ class Handler(BaseHTTPRequestHandler):
         if not self._is_device(True):
             return self._deny()
         session = str(body.get("session", ""))
+        if path == "/api/speak":  # read a message aloud via claudio-tts
+            if session not in self.server.hub.sessions:
+                return self._json(409, {"error": "that session is not connected"})
+            args = [sys.executable, "-m", "claudio_tts"]
+            if body.get("stop"):
+                args += ["stop", "--session", session]
+                text = None
+            else:
+                text = str(body.get("text", "")).strip()[:4000]
+                if not text:
+                    return self._json(400, {"error": "nothing to read"})
+                args += ["speak", "--session", session, "--text", text]
+            try:
+                done = subprocess.run(args, check=False, timeout=10, capture_output=True)  # noqa: S603
+                print(
+                    f"speak session={session} stop={bool(body.get('stop'))} rc={done.returncode} "
+                    f"{done.stderr.decode('utf-8', 'replace').strip()[:200]}",
+                    flush=True,
+                )
+            except (OSError, subprocess.SubprocessError) as error:
+                return self._json(501, {"error": f"claudio-tts is not available: {error}"})
+            return self._json(200, {"ok": True})
         if path == "/api/say":
             text = str(body.get("text", "")).strip()
             if not text or not hub.push_command(session, {"type": "prompt", "text": text[:8000]}):
@@ -215,14 +234,6 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/cancel":
             ok = hub.push_command(session, {"type": "cancel"})
             return self._json(200 if ok else 409, {"ok": ok})
-        if path == "/api/approve":
-            result = hub.decide(
-                str(body.get("id", "")), bool(body.get("allow")), bool(body.get("confirm"))
-            )
-            return self._json(409 if result == "confirm" else 200, {"result": result})
-        if path == "/api/away":
-            hub.set_away(bool(body.get("on")))
-            return self._json(200, {"away": hub.away})
         if path == "/api/voice":
             info = hub.sessions.get(session, {})
             ok, why = voicekey.hold(
@@ -263,21 +274,12 @@ class Handler(BaseHTTPRequestHandler):
                 hub.add_event(session, kind, str(body.get("text", "")),
                               summary=str(body.get("summary", "")))  # fmt: skip
             return self._json(200, {"ok": True})
-        if path == "/api/mod/approval":
-            approval = hub.create_approval(session, str(body.get("tool", "")), body.get("input"))
-            return self._json(200, {"id": approval["id"], "risky": approval["risky"]})
-        if path == "/api/mod/approval-expire":
-            hub.expire_approval(str(body.get("id", "")))
-            return self._json(200, {"ok": True})
         if path == "/api/admin/pair":
             code = self.server.devices.new_code()
             base = self.server.base_url
             return self._json(200, {"code": code, "url": f"{base}/?pair={code}"})
         if path == "/api/admin/revoke":
             return self._json(200, {"revoked": self.server.devices.revoke(str(body.get("id", "")))})
-        if path == "/api/admin/away":
-            hub.set_away(bool(body.get("on")))
-            return self._json(200, {"away": hub.away})
         if path == "/api/admin/shutdown":
             self._json(200, {"ok": True})
             threading.Thread(target=self.server.shutdown, daemon=True).start()
@@ -289,7 +291,6 @@ class Handler(BaseHTTPRequestHandler):
         snap = hub.snapshot()
         return {
             "url": self.server.base_url,
-            "away": hub.away,
             "sessions": [s["name"] for s in snap["sessions"] if s["online"]],
             "devices": len(self.server.devices.listing()),
             "uptime": int(time.time() - self.server.started),

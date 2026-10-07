@@ -22,7 +22,7 @@ CI runs ruff and pytest on Linux, macOS and Windows, plus a hub smoke test (inst
 ## Architecture
 
 - **Mod** (`src/claudio_vibecode/mod/hooks/register.ts`): runs inside Claude Code. Handles `/vibe` commands and forwards events to the hub over loopback. It calls the Python package with `python -m claudio_vibecode <cmd>`. `install-mod` sets `CLAUDIO_VIBECODE_PYTHON` so the mod finds the right interpreter. All OS-specific work stays in Python.
-- **Hub** (`hub.py`): in-memory state only: sessions, transcript events, queued phone commands, pending approvals. Also holds the risky-command regex that forces a second tap.
+- **Hub** (`hub.py`): in-memory state only: sessions, transcript events, queued phone commands.
 - **Server** (`server.py`): stdlib `ThreadingHTTPServer` with three route groups: phone routes (cookie token), mod routes (`X-Claudio-Mod` header), admin routes (loopback only). Stops itself after 8 idle hours.
 - **Control** (`ctl.py`, `cli.py`): start/stop the hub, pairing and QR, and talking to a running hub. `hub.json` in the state dir records the running hub.
 - **Auth** (`auth.py`): one-time pairing code (5 min) swapped for a per-device token, stored hashed.

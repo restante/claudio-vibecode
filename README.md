@@ -2,7 +2,7 @@
 
 # 📱 claudio-vibecode
 
-### Run Claude Code from your phone. Read it, answer it, approve it, talk to it, hear it.
+### Run Claude Code from your phone. Read it, answer it, talk to it, hear it.
 
 For vibe coders who don't sit at the monitor all day: start a task, grab a coffee, and keep going from a local web page on your phone. No native app, no account, nothing leaves your network.
 
@@ -19,13 +19,12 @@ For vibe coders who don't sit at the monitor all day: start a task, grab a coffe
 | On your phone | How |
 | --- | --- |
 | **See the conversation** | Every Claude Code session on your computer, with transcript and spoken summaries |
-| **Send a message** | One text box that mirrors Claude's prompt box. Dictate with the keyboard mic or **Hold to talk**, edit, then **Submit** |
-| **Stop Claude** | One tap interrupts what it is doing |
-| **Approve tool calls** | In *Away* mode Claude's permission asks go to your phone with the exact command. Risky ones (`rm`, `git push`, `curl`, writes outside the project) need a second tap |
-| **Dictate** | Speak into the phone and the text lands in the box. Only shown with [Tailscale](https://tailscale.com) and HTTPS certificates turned on; the browser's own speech service (Apple/Google) hears the audio |
-| **Hold to talk** | Presses Claude Code's voice key on your computer for as long as you hold the button |
-| **Hear Claude** | Claude's voice plays on the phone (needs [claudio-tts](https://github.com/restante/claudio-tts)). Mute the Mac speakers and listen on the phone only |
-| **Feel it** | Haptic feedback on taps, Submit, Stop and approvals (vibration on Android, a light tick on iPhone) |
+| **Send a message** | One text box that mirrors Claude's prompt box. Tap **Speak**, edit, then **Send** |
+| **Stop Claude** | While Claude is working, a row at the end of the conversation shows it (with the time so far) and a **Stop** button interrupts it |
+| **Read a message aloud** | Tap the small speaker icon on any Claude message. It plays where Output is set (phone or computer); tap again to stop |
+| **Mic and Output** | Two toggles above the Speak button, each **PC** or **Phone**. **Mic PC**: **Tap to speak** uses the computer's mic (Claude Code's voice key). **Mic Phone**: **Tap to speak** uses the phone's mic. **Output PC**: Claude's voice plays on the computer. **Output Phone**: it plays on the phone only. The phone mic needs [Tailscale](https://tailscale.com) with HTTPS certificates; the browser's speech service (Apple/Google) hears the audio |
+| **Hear Claude** | With Output on Phone, Claude's voice plays on the phone (needs [claudio-tts](https://github.com/restante/claudio-tts)) and the computer stays quiet |
+| **Feel it** | Haptic feedback on taps, Send and Stop (vibration on Android, a light tick on iPhone) |
 
 Works on **iPhone and Android** in the phone's normal browser. Pair once with a **QR code**.
 
@@ -60,16 +59,15 @@ It starts the hub and shows a QR code. Scan it with your phone camera (same Wi-F
 | `/vibe` or `/vibe on` | Start the hub and show a QR code to pair a phone |
 | `/vibe qr` | A fresh QR code (for another phone) |
 | `/vibe status` | Address, paired phones, connected sessions, voice-button readiness |
-| `/vibe away on` · `off` | Send tool permission asks to the phone instead of the dialog at the keyboard |
 | `/vibe devices` · `revoke <id>` | List paired phones · remove one |
 | `/vibe off` | Stop the hub and close the port |
 | `/vibe update` | Install the newest release. `/vibe update check` only looks, `/vibe update off` stops the daily check |
 
-On the phone page: **Sound** (this session's speech on/off), **Listen** (play Claude's voice on this phone), **Mac speakers** (keep the computer quiet while you listen), **Away**.
+On the phone page: **🔊 / 🔇** (this session's speech on/off), **Mic PC/Phone** (which mic Speak uses), **Output PC/Phone** (where Claude's voice plays).
 
 ## 🔊 Hearing Claude on the phone
 
-claudio-vibecode plugs into [claudio-tts](https://github.com/restante/claudio-tts) as an extra audio output. Tap **🎧 Listen** once (browsers need a tap before they allow sound) and every spoken reply plays on the phone too, whatever your `/tts device` setting is. `/tts device phone` plays on the phone only, and the **Mac speakers** chip keeps the computer quiet.
+claudio-vibecode plugs into [claudio-tts](https://github.com/restante/claudio-tts) as an extra audio output. Set **Output** to **📱 Phone** once (browsers need a tap before they allow sound) and every spoken reply plays on the phone, whatever your `/tts device` setting is, while the computer's speakers stay quiet. **🖥 PC** turns that off.
 
 ## 🔐 Security: please read
 
@@ -79,19 +77,19 @@ A paired phone can make Claude run tools on your computer, so treat it like a ke
 - The QR holds a one-time code (5 minutes). The phone swaps it for its own token, stored hashed. Revoke any time.
 - Every route needs that token; the pairing page only answers on the computer itself.
 - The connection is plain `http` on your Wi-Fi: use a network you trust. For another network or encryption use [Tailscale](https://tailscale.com); `/vibe status` prints the Tailscale address when it is running.
-- The page can't use the phone's microphone over plain `http` (browsers require HTTPS for that). Use the keyboard's dictation key, or **Hold to talk**, which uses the computer's mic.
+- The page can't use the phone's microphone over plain `http` (browsers require HTTPS for that). Use the keyboard's dictation key, or set Mic to PC, where **Tap to speak** uses the computer's mic.
 
 ## 🧩 How it works
 
 ```mermaid
 flowchart LR
   C["Claude Code session"] -- "events (loopback)" --> H["claudio-vibecode hub<br/>(local web server)"]
-  H -- "prompt, stop, approve, hold key" --> C
+  H -- "prompt, stop, hold key" --> C
   P["Phone browser"] <-- "page, live updates, audio clips" --> H
   T["claudio-tts"] -- "speech clips" --> H
 ```
 
-A small mod forwards each session's prompts and replies to the hub on `127.0.0.1` and carries out what the phone asks for (`$.prompt.submit`, `$.turn.abort`, a `tool.check` hook for approvals). The hub serves the phone page and relays Claude's speech from claudio-tts as short audio clips. See [docs/how-it-works.md](docs/how-it-works.md).
+A small mod forwards each session's prompts and replies to the hub on `127.0.0.1` and carries out what the phone asks for (`$.prompt.submit`, `$.turn.abort`). The hub serves the phone page and relays Claude's speech from claudio-tts as short audio clips. See [docs/how-it-works.md](docs/how-it-works.md).
 
 ## 🖥️ Platforms
 

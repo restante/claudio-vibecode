@@ -13,7 +13,6 @@ export const summaryOf = (text: string): string => {
 export type VibeCommand =
   | { kind: 'on' | 'off' | 'status' | 'devices' }
   | { kind: 'qr'; invert?: boolean }
-  | { kind: 'away'; value: 'on' | 'off' }
   | { kind: 'revoke'; value: string }
   | { kind: 'update'; value?: 'check' | 'on' | 'off' }
 
@@ -26,7 +25,6 @@ export const parseVibeArgs = (args: string): VibeCommand | undefined => {
   if (word === 'status') return { kind: 'status' }
   if (word === 'devices' || word === 'phones') return { kind: 'devices' }
   if (word === 'qr' || word === 'pair') return rest === 'invert' ? { kind: 'qr', invert: true } : { kind: 'qr' }
-  if (word === 'away') return rest === 'on' || rest === 'off' ? { kind: 'away', value: rest } : undefined
   if (word === 'revoke') return rest ? { kind: 'revoke', value: rest } : undefined
   if (word === 'update' || word === 'upgrade') {
     if (rest === '') return { kind: 'update' }
