@@ -204,7 +204,6 @@ This removes claudio-vibecode and leaves claudio-tts alone.
 
 ## Credits
 
-- My friend [Donato Antonini](https://www.linkedin.com/in/donato-antonini-47b18a48/), for the brainstorming and the idea.
 - [claudio-tts](https://github.com/restante/claudio-tts) and [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) for the voice.
 
 ## License
