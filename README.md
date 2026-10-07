@@ -2,9 +2,9 @@
 
 # Claudio vibecode
 
-### Claude Code, wherever you are.
+### Vibe code with your voice, from anywhere.
 
-Start a task at your desk. Check on it from the sofa. Answer Claude from your phone, hear its replies, and keep the work moving, without sitting at the screen.
+Talk to Claude Code from your phone, and hear it talk back. Start a task at your desk, walk away, and keep the conversation going with no keyboard and no monitor.
 
 [![CI](https://github.com/restante/claudio-vibecode/actions/workflows/ci.yml/badge.svg)](https://github.com/restante/claudio-vibecode/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -18,14 +18,23 @@ Start a task at your desk. Check on it from the sofa. Answer Claude from your ph
 
 Claude Code does its best work when you let it run. But a long task shouldn't keep you chained to the monitor.
 
-Claudio vibecode is a free, open-source remote control for Claude Code. Use Claude Code from your phone, on iPhone or Android, to read replies, answer by voice or text, and stop a task, with Claude's voice read aloud. Claude Code remote, Claude Code mobile and Claude Code voice, in one small package.
+Claudio vibecode is a free, open-source remote control for Claude Code, built around your voice. Use Claude Code from your phone, on iPhone or Android: say what you want, hear Claude's answer read aloud, and say what's next. Claude Code remote, Claude Code mobile and Claude Code voice, in one small package.
 
 It puts a small web page on your phone that is connected to the Claude Code sessions on your computer. Nothing to install on the phone, no account, and nothing leaves your network.
 
+### Voice, front and center
+
+- **Speak your prompts.** Tap **Speak**, say it, tap again. Your words land in the text box, so you can fix a word before you send. Use your phone's mic, or your computer's.
+- **Hear every reply.** Claude's short spoken summary plays as it finishes, on your phone or on your computer. Tap the speaker icon on any message to hear it again.
+- **Keep the loop going.** Speak, listen, speak. Vibe code on a walk, in the car park, or on the sofa.
+- **Choose where you talk and listen.** Mic and speakers are separate switches, each on PC or Phone.
+
+### And everything else you need
+
 - **Read** what Claude is doing, across every session you have open.
-- **Reply** by typing or by voice. Your message arrives as if you had typed it at the keyboard.
+- **Type** when talking isn't an option. Your message arrives as if you had typed it at the keyboard.
 - **Stop** a task that is going the wrong way, with one tap.
-- **Listen** to Claude's replies read aloud, on the phone or on the computer.
+- **Get notified** when Claude replies while the page is in the background.
 
 ## Install in a minute
 
