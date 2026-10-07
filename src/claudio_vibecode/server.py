@@ -164,6 +164,22 @@ class Handler(BaseHTTPRequestHandler):
             wav = self._raw(16_000_000)
             session = parse_qs(url.query).get("session", [""])[0]
             return self._json(200, {"id": hub.add_clip(session, wav)})
+        if path == "/api/upload":  # raw file bytes from the phone; not JSON
+            if not self._is_device(True):
+                return self._deny()
+            query = parse_qs(url.query)
+            length = int(self.headers.get("Content-Length") or 0)
+            if length > hubmod.MAX_UPLOAD:
+                self.close_connection = True  # the body is never read
+                return self._json(413, {"error": "the file is too large"})
+            data = self.rfile.read(length) if length else b""
+            try:
+                saved = hub.add_upload(
+                    query.get("session", [""])[0], query.get("name", ["file"])[0], data
+                )
+            except hubmod.UploadError as error:
+                return self._json(error.status, {"error": str(error)})
+            return self._json(200, saved)
         body = self._body()
         if path == "/api/pair":
             token = self.server.devices.pair(
@@ -216,6 +232,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200 if ok else 409, {"ok": ok})
         if path == "/api/submit":
             command = {"type": "submit", "text": str(body.get("text", ""))[:8000]}
+            files = hub.resolve_uploads(session, body.get("attachments"))
+            if files:
+                command["attachments"] = files
             ok = hub.push_command(session, command)
             if ok:
                 hub.set_draft(session, "")  # the box empties; without this the old text comes back
@@ -355,4 +374,5 @@ def serve(host: str, port: int, base_url: str, mic: bool = False) -> None:
     try:
         server.serve_forever()
     finally:
+        server.hub.cleanup_uploads()
         server.server_close()

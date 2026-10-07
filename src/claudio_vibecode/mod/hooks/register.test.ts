@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { parseVibeArgs, summaryOf } from './args'
+import { parseVibeArgs, summaryOf, withAttachments } from './args'
 
 const ok = (stdout: string) => ({
   value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
@@ -70,4 +70,14 @@ test('without the hub a permission ask is left to the local dialog', async ($, o
   on('tool.check', () => ({ decision: 'ask' }))
   const verdict = await $.tool.check({ tool: 'Bash', input: { command: 'ls' } } as never)
   expect(verdict.decision).toBe('ask')
+})
+
+test('withAttachments adds where the files are, and a default sentence when there is no text', () => {
+  const files = [{ name: 'a.png', path: '/p/.claudio-uploads/1-a.png' }]
+  expect(withAttachments('What is this?', undefined)).toBe('What is this?')
+  expect(withAttachments('What is this?', files)).toBe(
+    'What is this?\n\nAttached from my phone (read these files):\n- /p/.claudio-uploads/1-a.png',
+  )
+  expect(withAttachments('  ', files)).toContain('Please look at the attached file.')
+  expect(withAttachments('', [...files, { name: 'b.pdf', path: '/p/b.pdf' }])).toContain('attached files.')
 })

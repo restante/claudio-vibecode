@@ -32,3 +32,12 @@ export const parseVibeArgs = (args: string): VibeCommand | undefined => {
   }
   return undefined
 }
+
+export type Attachment = { name: string; path: string }
+
+/** The prompt as Claude gets it: the text, then where the files from the phone are saved. */
+export const withAttachments = (text: string, files: readonly Attachment[] | undefined): string => {
+  if (!files?.length) return text
+  const body = text.trim() || `Please look at the attached ${files.length === 1 ? 'file' : 'files'}.`
+  return `${body}\n\nAttached from my phone (read these files):\n${files.map(f => `- ${f.path}`).join('\n')}`
+}

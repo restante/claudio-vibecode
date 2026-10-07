@@ -220,6 +220,85 @@ def test_submit_empties_the_shared_draft(srv):
     assert snap["sessions"][0]["draft"] == ""  # else the phone would refill its box
 
 
+def upload(srv, headers, session, name, data):
+    conn = http.client.HTTPConnection("127.0.0.1", srv.server_address[1], timeout=10)
+    conn.request("POST", f"/api/upload?session={session}&name={name}", data, headers)
+    res = conn.getresponse()
+    return res.status, json.loads(res.read() or b"{}")
+
+
+def test_attachments_are_saved_in_the_project_and_reach_the_prompt(srv, tmp_path):
+    headers, _ = pair(srv)
+    project = tmp_path / "project"
+    project.mkdir()
+    mod(srv, "POST", "/api/mod/register", {"session": "s1", "name": "p", "cwd": str(project)})
+    assert upload(srv, {}, "s1", "a.png", b"x")[0] == 401  # needs a paired phone
+    status, saved = upload(srv, headers, "s1", "a.png", b"\x89PNG")
+    assert status == 200
+    folder = project / ".claudio-uploads"
+    assert (folder / ".gitignore").read_text() == "*\n"
+    assert (folder / f"{saved['id']}-a.png").read_bytes() == b"\x89PNG"
+    call(
+        srv,
+        "POST",
+        "/api/submit",
+        {"session": "s1", "text": "look", "attachments": [saved["id"]]},
+        headers,
+    )
+    _, polled = mod(srv, "GET", "/api/mod/poll?session=s1")
+    assert polled["commands"][0]["attachments"] == [
+        {"name": "a.png", "path": str(folder / f"{saved['id']}-a.png")}
+    ]
+
+
+def test_attachment_names_and_kinds_are_checked(srv, tmp_path):
+    headers, _ = pair(srv)
+    mod(srv, "POST", "/api/mod/register", {"session": "s1", "cwd": str(tmp_path)})
+    status, saved = upload(srv, headers, "s1", "..%2F..%2Fescape.png", b"x")
+    assert status == 200
+    assert saved["name"] == "escape.png"
+    assert (tmp_path / ".claudio-uploads" / f"{saved['id']}-escape.png").is_file()
+    assert upload(srv, headers, "s1", "run.exe", b"x")[0] == 415
+    assert upload(srv, headers, "s1", "empty.png", b"")[0] == 400
+    assert upload(srv, headers, "nope", "a.png", b"x")[0] == 409
+
+
+def test_oversize_attachment_is_refused(srv, tmp_path, monkeypatch):
+    headers, _ = pair(srv)
+    mod(srv, "POST", "/api/mod/register", {"session": "s1", "cwd": str(tmp_path)})
+    monkeypatch.setattr(hub, "MAX_UPLOAD", 10)
+    assert upload(srv, headers, "s1", "big.png", b"x" * 11)[0] == 413
+
+
+def test_submit_ignores_attachments_the_session_does_not_own(srv, tmp_path):
+    headers, _ = pair(srv)
+    mod(srv, "POST", "/api/mod/register", {"session": "s1", "cwd": str(tmp_path)})
+    mod(srv, "POST", "/api/mod/register", {"session": "s2", "cwd": str(tmp_path)})
+    _, saved = upload(srv, headers, "s1", "a.png", b"x")
+    call(
+        srv,
+        "POST",
+        "/api/submit",
+        {"session": "s2", "text": "hi", "attachments": [saved["id"], "bogus"]},
+        headers,
+    )
+    _, polled = mod(srv, "GET", "/api/mod/poll?session=s2")
+    assert "attachments" not in polled["commands"][0]
+
+
+def test_old_attachments_are_deleted(tmp_path):
+    h = hub.Hub()
+    h.register("s1", "p", cwd=str(tmp_path))
+    saved = h.add_upload("s1", "a.png", b"x")
+    path = tmp_path / ".claudio-uploads" / f"{saved['id']}-a.png"
+    h.cleanup_uploads()
+    assert path.exists()  # still fresh
+    h.uploads[saved["id"]]["ts"] -= hub.UPLOAD_TTL + 1
+    h.cleanup_uploads()
+    assert not path.exists()
+    assert not (tmp_path / ".claudio-uploads").exists()  # nothing left, folder removed too
+
+
 def test_sound_state_comes_from_claudio_tts_and_mute_reaches_the_session(srv):
     from claudio_tts import sessionstate
 

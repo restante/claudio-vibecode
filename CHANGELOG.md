@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **Removed the preset reply pills** (continue, yes, no, ...). Type or speak instead.
+- **Attachments**: a paperclip in the text box attaches photos and files (camera, photo library, files), and pasting a copied picture into the box works too. Photos are shrunk on the phone first. The files are saved in `.claudio-uploads/` in the session's project folder (git-ignored, deleted after 24 hours) and Claude is told where they are.
 - **Notifications**: a bell in the top corner. When Claude replies while the page is in the background, the phone shows a notification (tap it to come back). Needs HTTPS (the Tailscale address) and only works while the page is still alive: Android keeps it for a while, and it lasts longer with Output on Phone; on iPhone add the page to the Home Screen first.
 - **Read aloud**: a small speaker icon on each Claude message speaks it through claudio-tts, on the phone or the computer as Output is set. Tap again to stop. Uses claudio-tts's default voice and volume.
 - **Mic and Output toggles** (PC or Phone each) above the Speak button, with the mute icon next to Output.

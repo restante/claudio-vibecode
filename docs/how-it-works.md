@@ -15,6 +15,7 @@ computer: no app, no account, nothing leaves your network.
 - Every Claude session on the computer, with its transcript, the spoken summaries, and a "show full reply" tap.
 - A message box. Messages arrive as if you typed them.
 - **Stop** cancels the running turn.
+- **Attachments** (the paperclip, or paste a picture): the phone uploads the file, the hub saves it in `.claudio-uploads/` in the session's project folder (with a `.gitignore` of `*`, so git never sees it, and removed after 24 hours), and the prompt tells Claude the path. Claude Code does not let a mod add an image to a prompt directly, so Claude opens the file with its normal Read tool. Photos are shrunk on the phone first. Only images, PDFs and text or code files, up to 20 MB each, 8 per message.
 - **Tap to speak** (Mic set to PC) holds the key Claude Code's voice mode listens to (space, with `voice.mode: hold`) on the
   computer from your first tap until the second (90 seconds at most). It presses that key in the front window, so the Claude terminal must be
   focusable and the screen unlocked. On macOS allow your terminal app in System Settings > Privacy & Security >

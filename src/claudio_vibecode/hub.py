@@ -3,16 +3,43 @@
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 import uuid
 from collections import deque
+from pathlib import Path
 
 MAX_EVENTS = 200
 SNAPSHOT_EVENTS = 80
 TEXT_LIMIT = 3000
 STALE_AFTER = 30  # seconds without a poll before a session shows as offline
 LISTEN_TTL = 120  # Listen survives a phone that sleeps or reloads for this long
+
+# Attachments from the phone are saved in the session's project folder, so Claude can open them
+# without asking for permission. The folder ignores itself in git.
+UPLOAD_DIR = ".claudio-uploads"
+UPLOAD_TTL = 24 * 3600
+MAX_UPLOAD = 20_000_000
+MAX_SESSION_BYTES = 100_000_000
+UPLOAD_EXTENSIONS = {
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".txt", ".md", ".json", ".csv", ".log",
+    ".yaml", ".yml", ".xml", ".html", ".css", ".js", ".ts", ".tsx", ".jsx", ".py", ".swift",
+    ".kt", ".java", ".go", ".rs", ".rb", ".sh", ".sql", ".toml", ".ini", ".diff", ".patch",
+}  # fmt: skip
+
+
+class UploadError(Exception):
+    def __init__(self, status: int, message: str) -> None:
+        super().__init__(message)
+        self.status = status
+
+
+def safe_name(name: str) -> str:
+    """The file name only: no folders, and only characters that are safe in a path."""
+    base = re.split(r"[\\/]", name)[-1]
+    base = re.sub(r"[^A-Za-z0-9._ -]", "_", base).strip(" .")
+    return (base or "file")[-80:]
 
 
 def session_title(pid: int) -> str:
@@ -63,6 +90,7 @@ class Hub:
         self.local_sound = (
             True  # whether the computer's own speakers also play while a phone listens
         )
+        self.uploads: dict[str, dict] = {}  # id -> {session, path, name, size, ts}
 
     def _bump(self) -> None:
         self.version += 1
@@ -130,6 +158,78 @@ class Hub:
                 self.sessions[session]["last"] = event["ts"]
             self._bump()
             return event
+
+    # ---- attachments (phone -> project folder) ----
+    def add_upload(self, session: str, name: str, data: bytes) -> dict:
+        with self.cv:
+            info = dict(self.sessions.get(session) or {})
+        if not info:
+            raise UploadError(409, "that session is not connected")
+        cwd = Path(info.get("cwd") or "")
+        if not info.get("cwd") or not cwd.is_dir():
+            raise UploadError(409, "the session's folder is not available")
+        clean = safe_name(name)
+        if Path(clean).suffix.lower() not in UPLOAD_EXTENSIONS:
+            raise UploadError(415, "that kind of file is not accepted")
+        if not data:
+            raise UploadError(400, "the file is empty")
+        if len(data) > MAX_UPLOAD:
+            raise UploadError(413, "the file is too large")
+        self.cleanup_uploads()
+        with self.cv:
+            used = sum(u["size"] for u in self.uploads.values() if u["session"] == session)
+        if used + len(data) > MAX_SESSION_BYTES:
+            raise UploadError(413, "too many attachments for this session; try again later")
+        folder = cwd / UPLOAD_DIR
+        folder.mkdir(exist_ok=True)
+        ignore = folder / ".gitignore"
+        if not ignore.exists():
+            ignore.write_text("*\n", encoding="utf-8")
+        ident = uuid.uuid4().hex[:8]
+        path = folder / f"{ident}-{clean}"
+        if path.resolve().parent != folder.resolve():
+            raise UploadError(400, "bad file name")
+        path.write_bytes(data)
+        with self.cv:
+            self.uploads[ident] = {
+                "session": session,
+                "path": str(path),
+                "name": clean,
+                "size": len(data),
+                "ts": time.time(),
+            }
+        return {"id": ident, "name": clean, "size": len(data)}
+
+    def resolve_uploads(self, session: str, ids: object) -> list[dict]:
+        """Saved files for ids this session was given. The phone never names a path."""
+        found: list[dict] = []
+        if not isinstance(ids, list):
+            return found
+        with self.cv:
+            for ident in ids[:8]:
+                item = self.uploads.get(str(ident))
+                if item and item["session"] == session and Path(item["path"]).is_file():
+                    found.append({"name": item["name"], "path": item["path"]})
+        return found
+
+    def cleanup_uploads(self) -> None:
+        """Delete attachments older than a day, and a project folder left with nothing in it."""
+        cutoff = time.time() - UPLOAD_TTL
+        with self.cv:
+            old = [i for i, u in self.uploads.items() if u["ts"] < cutoff]
+            gone = [self.uploads.pop(i) for i in old]
+        for item in gone:
+            path = Path(item["path"])
+            path.unlink(missing_ok=True)
+            folder = path.parent
+            try:
+                if folder.name == UPLOAD_DIR and [p.name for p in folder.iterdir()] == [
+                    ".gitignore"
+                ]:
+                    (folder / ".gitignore").unlink()
+                    folder.rmdir()
+            except OSError:
+                pass
 
     # ---- commands (phone -> mod) ----
     def push_command(self, session: str, command: dict) -> bool:

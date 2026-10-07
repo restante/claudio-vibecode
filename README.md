@@ -96,6 +96,8 @@ A bonus: the secure address is what unlocks the **Phone mic** and **notification
 
 **One text box.** It mirrors the prompt box on your computer. Type, or tap **Speak** and talk, then edit before you send. **Clear** appears only when there is something to clear, and **Send** appears only when there is something to send.
 
+**Attach anything.** Tap the paperclip to take a photo, pick one from your library, or choose a file. You can also paste a copied picture into the box. Ask Claude about a screenshot, a crash log or a design, straight from your phone.
+
 **Mic, Out, and mute.** Choose where you talk and where you listen. More on that below.
 
 </td>
@@ -147,15 +149,26 @@ This works through the page itself, with no push service involved, so there are 
 | `/vibe off` | Stop the hub and close the port |
 | `/vibe update` | Install the newest release. `update check` only looks, `update off` stops the daily check |
 
-## Private by design
+## Secure by design
 
-A paired phone can make Claude run tools on your computer, so treat it like a keyboard. Here's how it's kept safe:
+Letting a phone talk to Claude Code is a serious thing, so security is built in from the start, not added later. A paired phone can make Claude run tools on your computer, so it's treated like a keyboard: nobody gets near it unless you let them, and it stays in your hands.
 
-- **Off until you turn it on.** Nothing runs until you type `/vibe`. It stops on its own after 8 idle hours, and `/vibe off` closes the port at once.
-- **One-time pairing.** The QR code holds a code that works once, for 5 minutes. Your phone swaps it for its own token, stored hashed. Revoke a phone any time.
-- **Every route needs that token.** The pairing page only answers on the computer itself.
-- **Your network only.** Nothing is sent to us or to any cloud. On plain Wi-Fi the connection is `http`, so use a network you trust. For another network, or for encryption, use [Tailscale](https://tailscale.com). `/vibe status` prints the address.
-- **No extra dependencies for the server.** It's the Python standard library.
+**Why it's secure**
+
+- **Closed until you open it.** Nothing runs until you type `/vibe`. `/vibe off` closes the port at once, and it shuts itself down after 8 idle hours.
+- **Pairing you control.** The QR code holds a random, single-use code that expires in 5 minutes. Guessing is blocked too: pairing attempts are rate limited. The code is shown on your computer only, and the pairing page refuses anyone who isn't on that computer.
+- **A key for every phone.** After pairing, each phone gets its own 256-bit random token. It's stored on your computer only as a hash, never in plain text, and the cookie is `HttpOnly` and `SameSite=Strict`. Lose a phone? `/vibe revoke` removes it immediately.
+- **No open doors.** Every route needs that token, apart from the page itself. The routes used by Claude Code and by admin tools answer only on your own computer and need a separate secret.
+- **Protected against other websites.** Actions need a custom header and a matching origin, so a page you happen to have open in another tab can't make your phone or your computer do anything.
+- **Encrypted when you leave home.** With [Tailscale](https://tailscale.com), everything travels through a private, encrypted network and over HTTPS. There's no port forwarding, and nothing is exposed to the public internet.
+- **Nothing leaves your network.** No cloud, no account, no analytics, no tracking. The page is one file with no external requests, so nothing else loads when you open it. The server uses only Python's standard library, which keeps the code small and easy to audit.
+- **Attachments are boxed in.** Files you send are saved in a `.claudio-uploads` folder inside the session's project, ignored by git and deleted after 24 hours. Only images, PDFs and text or code files are accepted, up to 20 MB each. Names are cleaned so a file can't escape that folder, and your phone never chooses a path: it can only refer to files the hub itself saved.
+- **Open source.** It's MIT licensed, and every line is there for you to read.
+
+**What to keep in mind**
+
+- On plain Wi-Fi the connection is `http`, which isn't encrypted. Use a network you trust, or use Tailscale. `/vibe status` shows both addresses.
+- Anyone holding a paired, unlocked phone can use it like your keyboard. Keep your phone locked, and revoke it if it's lost.
 
 ## How it works
 

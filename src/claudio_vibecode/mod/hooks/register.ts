@@ -1,6 +1,6 @@
 import type { Hook, Register } from 'claude-code'
 
-import { parseVibeArgs, summaryOf } from './args'
+import { type Attachment, parseVibeArgs, summaryOf, withAttachments } from './args'
 
 const USAGE =
   'Usage: /vibe [on|off|qr|status|devices|revoke <id>|update [check|on|off]]'
@@ -40,7 +40,7 @@ type Hub = { port: number; token: string; pid: number }
 type PhoneCommand =
   | { type: 'prompt'; text: string }
   | { type: 'cancel' }
-  | { type: 'submit'; text?: string }
+  | { type: 'submit'; text?: string; attachments?: Attachment[] }
   | { type: 'setdraft'; text: string }
   | { type: 'mute'; on: boolean }
 type Polled = { commands: PhoneCommand[]; known: boolean }
@@ -130,10 +130,12 @@ async function tick($: Dollar) {
       } else if (command.type === 'submit') {
         // Send the text from the phone (or, failing that, the prompt box), as pressing Enter would.
         const draft = command.text?.trim() || (await $.prompt.read().catch(() => undefined))?.text.trim()
-        if (draft) {
+        if (draft || command.attachments?.length) {
           await $.prompt.fill({ text: '', mode: 'replace' }).catch(() => undefined)
           lastDraft = ''
-          void $.prompt.submit({ text: draft, asUser: true }).catch(() => undefined)
+          void $.prompt
+            .submit({ text: withAttachments(draft ?? '', command.attachments), asUser: true })
+            .catch(() => undefined)
         }
       } else if (command.type === 'mute') {
         // The sound switch belongs to claudio-tts; ask it the way a person would.

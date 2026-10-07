@@ -81,7 +81,25 @@
   .boxwrap { position:relative; }
   #clear { position:absolute; top:8px; right:8px; flex:none; padding:3px 10px; font-size:12px; border-radius:999px; }
   #clear[hidden] { display:none; }
-  #text { width:100%; resize:none; max-height:30vh; font:inherit; padding:14px 64px 14px 14px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--text); min-width:0; }
+  #attach { position:absolute; bottom:8px; left:8px; flex:none; background:none; color:var(--dim); padding:6px; border-radius:999px; line-height:0; }
+  #attach .ic { width:20px; height:20px; }
+  body.watch #attach, body.watch .files { display:none; }
+  .files { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; }
+  .files[hidden] { display:none; }
+  .file { display:flex; align-items:center; gap:8px; flex:none; max-width:230px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px 4px 4px 4px; font-size:13px; }
+  .file.err { border-color:var(--bad); }
+  .file img, .file .fi { width:36px; height:36px; border-radius:8px; object-fit:cover; flex:none; }
+  .file .fi { display:grid; place-items:center; color:var(--dim); background:var(--bg); }
+  .file .fi .ic { width:18px; height:18px; }
+  .file .ft { min-width:0; display:flex; flex-direction:column; }
+  .file .fn { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px; }
+  .file .fs { color:var(--dim); font-size:11px; }
+  .file.err .fs { color:var(--bad); }
+  .file button { flex:none; background:none; color:var(--dim); padding:6px; line-height:0; }
+  .file button .ic { width:16px; height:16px; }
+  .msg .att { margin-top:4px; font-size:13px; opacity:.9; }
+  .msg .att .ic { width:14px; height:14px; }
+  #text { width:100%; resize:none; max-height:30vh; font:inherit; padding:14px 64px 40px 14px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--text); min-width:0; }
   #pair, #err { padding:32px 20px; text-align:center; }
   #pair h2 { font-family:var(--serif); font-weight:600; }
   .hidden { display:none !important; }
@@ -107,7 +125,10 @@
     <div class="boxwrap">
       <textarea id="text" rows="2" placeholder="Message Claude. Type or tap Speak, then Send." autocomplete="off"></textarea>
       <button class="dim" id="clear" hidden aria-label="Clear the message">Clear</button>
+      <button id="attach" title="Attach a photo or file" aria-label="Attach a photo or file" data-i="paperclip"></button>
+      <input type="file" id="file" multiple hidden accept="image/*,application/pdf,text/*,.md,.json,.csv,.log,.yaml,.yml,.xml,.diff,.patch">
     </div>
+    <div class="files" id="files" hidden></div>
     <div class="row">
       <button class="ok" id="submit" style="font-size:20px;padding:20px">Send<small>same as pressing Enter</small></button>
     </div>
@@ -141,6 +162,9 @@ const ICONS = {
   mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
   headphones: '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
   'volume-2': '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  paperclip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  'file-text': '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
   bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   'bell-off': '<path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5"/><path d="M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/>',
   'volume-x': '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/>',
@@ -168,7 +192,7 @@ function haptic(kind) {
   let t = 0;
   pattern.forEach((ms, i) => { if (i % 2 === 0) setTimeout(() => { try { tick.click(); } catch (e) {} }, t); t += ms; });
 }
-document.addEventListener('pointerdown', (e) => { if (e.target.closest('.chip:not(#mute), .seg button, #clear')) haptic('tap'); }, true);
+document.addEventListener('pointerdown', (e) => { if (e.target.closest('.chip:not(#mute), .seg button, #clear, #attach')) haptic('tap'); }, true);
 
 async function api(path, body) {
   const res = await fetch(path, body === undefined ? {} : {
@@ -344,6 +368,7 @@ function render() {
   if (cur && cur.status === 'working') addWorking(mine);
   if (near) window.scrollTo(0, doc.scrollHeight);
   syncText(cur ? cur.draft || '' : '');
+  renderFiles();
 }
 // Claude is busy: a row at the end of the feed, with the Stop button next to it.
 let workingSince = 0;
@@ -380,7 +405,16 @@ async function speakHere(text, btn) {
 function addEvent(e) {
   const d = document.createElement('div');
   const time = new Date(e.ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  if (e.kind === 'prompt') { d.className = 'msg prompt'; d.innerHTML = '<small>' + time + '</small>'; d.append(e.text); }
+  if (e.kind === 'prompt') {
+    d.className = 'msg prompt'; d.innerHTML = '<small>' + time + '</small>';
+    const [body, list] = String(e.text).split('\n\nAttached from my phone (read these files):\n');
+    d.append(body);
+    if (list) {  // show file names, not paths
+      const names = list.split('\n').map((l) => l.replace(/^- /, '').split(/[\\/]/).pop().replace(/^[0-9a-f]{8}-/, ''));
+      const a = document.createElement('div'); a.className = 'att'; a.innerHTML = ic('paperclip') + ' ';
+      a.append(names.join(', ')); d.append(a);
+    }
+  }
   else if (e.kind === 'reply') {
     d.className = 'msg' + (e.summary ? ' summary' : '');
     d.innerHTML = '<small>Claude ' + time + '</small>';
@@ -419,15 +453,80 @@ box.addEventListener('input', () => {
 });
 $('submit').onclick = async () => {
   const text = box.value.trim();
-  if (!current || !text) return;
+  const ready = mine().filter((f) => f.state === 'ready');
+  if (!current || (!text && !ready.length) || mine().some((f) => f.state === 'uploading')) return;
   clearTimeout(pushTimer);
-  box.value = ''; lastPushed = ''; dirty = false; refresh();
-  const r = await api('/api/submit', { session: current, text });
+  box.value = ''; lastPushed = ''; dirty = false;
+  files = files.filter((f) => !ready.includes(f));
+  refresh(); renderFiles();
+  const r = await api('/api/submit', { session: current, text, attachments: ready.map((f) => f.id) });
   haptic(r.status === 200 ? 'ok' : 'error');
-  if (r.status !== 200) { box.value = text; refresh(); alert(r.data.error || 'Could not send'); }
+  if (r.status !== 200) { box.value = text; files.push(...ready); refresh(); renderFiles(); alert(r.data.error || 'Could not send'); }
 };
-$('clear').onclick = () => { box.value = ''; refresh(); pushText(); box.blur(); };
-function refresh() { $('submit').parentElement.hidden = !box.value.trim(); $('clear').hidden = !box.value; }
+function refresh() {
+  const has = box.value.trim() || mine().some((f) => f.state === 'ready');
+  $('submit').parentElement.hidden = !has;
+  $('submit').disabled = mine().some((f) => f.state === 'uploading');
+  $('clear').hidden = !box.value;
+}
+// ---- Attachments: photos and files go to the project folder on the computer; Claude is told where ----
+let files = [];  // { session, name, size, state: 'uploading' | 'ready' | 'error', id, thumb, error }
+const mine = () => files.filter((f) => f.session === current);
+const sizeText = (n) => (n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB');
+async function shrink(file) {  // phone photos are huge: cap the longest side and re-save as JPEG
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 300000) return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.85));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+  } catch (e) { return file; }
+}
+async function addFiles(list) {
+  if (!current) return;
+  for (const original of [...list]) {
+    if (mine().length >= 8) { alert('You can attach up to 8 files at a time.'); break; }
+    const entry = { session: current, name: original.name || 'file', size: original.size, state: 'uploading', thumb: original.type.startsWith('image/') ? URL.createObjectURL(original) : '' };
+    files.push(entry); renderFiles(); refresh(); haptic('tap');
+    try {
+      const file = await shrink(original);
+      entry.name = file.name; entry.size = file.size;
+      const res = await fetch('/api/upload?session=' + encodeURIComponent(entry.session) + '&name=' + encodeURIComponent(file.name),
+        { method: 'POST', headers: { 'X-Claudio': '1', 'Content-Type': 'application/octet-stream' }, body: file });
+      let data = {}; try { data = await res.json(); } catch (e) {}
+      if (res.status === 200) { entry.state = 'ready'; entry.id = data.id; entry.name = data.name; }
+      else { entry.state = 'error'; entry.error = data.error || 'Upload failed'; haptic('error'); }
+    } catch (e) { entry.state = 'error'; entry.error = 'Upload failed'; haptic('error'); }
+    renderFiles(); refresh();
+  }
+}
+function renderFiles() {
+  const box_ = $('files'), list = mine();
+  box_.hidden = !list.length; box_.innerHTML = '';
+  list.forEach((f) => {
+    const d = document.createElement('div'); d.className = 'file' + (f.state === 'error' ? ' err' : '');
+    if (f.thumb) { const im = document.createElement('img'); im.src = f.thumb; im.alt = ''; d.append(im); }
+    else { const i = document.createElement('div'); i.className = 'fi'; i.innerHTML = ic('file-text'); d.append(i); }
+    const t = document.createElement('div'); t.className = 'ft';
+    const n = document.createElement('span'); n.className = 'fn'; n.textContent = f.name;
+    const s = document.createElement('span'); s.className = 'fs'; s.textContent = f.state === 'error' ? f.error : f.state === 'uploading' ? 'Uploading…' : sizeText(f.size);
+    t.append(n, s); d.append(t);
+    const x = document.createElement('button'); x.innerHTML = ic('x'); x.title = x.ariaLabel = 'Remove ' + f.name;
+    x.onclick = () => { files = files.filter((g) => g !== f); if (f.thumb) URL.revokeObjectURL(f.thumb); renderFiles(); refresh(); };
+    d.append(x); box_.append(d);
+  });
+}
+$('attach').onclick = () => $('file').click();
+$('file').onchange = () => { addFiles($('file').files); $('file').value = ''; };
+box.addEventListener('paste', (e) => {  // a copied picture (long-press Paste on the phone, Ctrl/Cmd+V on a computer)
+  const pics = [...(e.clipboardData ? e.clipboardData.files : [])].filter((f) => f.type.startsWith('image/'));
+  if (!pics.length) return;
+  e.preventDefault();
+  addFiles(pics.map((f, i) => new File([f], 'pasted-' + Date.now() + (i ? '-' + i : '') + '.' + (f.type.split('/')[1] || 'png').replace('jpeg', 'jpg'), { type: f.type })));
+});
 $('mute').onclick = () => { const me = sessionOf(current); if (me) api('/api/mute', { session: current, on: !me.muted }).then(() => haptic('ok')); };
 
 // Speak: one button, tap to start, tap to stop. Phone mic (https): the browser listens. Computer mic: the hub
