@@ -21,6 +21,7 @@ For vibe coders who don't sit at the monitor all day: start a task, grab a coffe
 | **See the conversation** | Every Claude Code session on your computer, with transcript and spoken summaries |
 | **Send a message** | One text box that mirrors Claude's prompt box. Tap **Speak**, edit, then **Send** |
 | **Stop Claude** | While Claude is working, a row at the end of the conversation shows it (with the time so far) and a **Stop** button interrupts it |
+| **Notifications** | Tap the bell. When Claude replies while the page is in the background, the phone shows a notification. Needs the Tailscale HTTPS address, and works only while the page is still alive (on iPhone, add the page to the Home Screen first) |
 | **Read a message aloud** | Tap the small speaker icon on any Claude message. It plays where Output is set (phone or computer); tap again to stop |
 | **Mic and Output** | Two toggles above the Speak button, each **PC** or **Phone**. **Mic PC**: **Tap to speak** uses the computer's mic (Claude Code's voice key). **Mic Phone**: **Tap to speak** uses the phone's mic. **Output PC**: Claude's voice plays on the computer. **Output Phone**: it plays on the phone only. The phone mic needs [Tailscale](https://tailscale.com) with HTTPS certificates; the browser's speech service (Apple/Google) hears the audio |
 | **Hear Claude** | With Output on Phone, Claude's voice plays on the phone (needs [claudio-tts](https://github.com/restante/claudio-tts)) and the computer stays quiet |

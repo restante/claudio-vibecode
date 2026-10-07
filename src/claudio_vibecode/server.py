@@ -111,6 +111,11 @@ class Handler(BaseHTTPRequestHandler):
         path = url.path
         if path in ("/", "/w", "/index.html"):
             return self._send(200, _page(), "text/html; charset=utf-8")
+        if path == "/sw.js":  # static, nothing private in it (same as the page)
+            script = resources.files("claudio_vibecode").joinpath("web/sw.js").read_bytes()
+            return self._send(
+                200, script, "text/javascript; charset=utf-8", {"Service-Worker-Allowed": "/"}
+            )
         if path == "/manifest.webmanifest":
             manifest = {
                 "name": "Claudio vibecode", "short_name": "Claudio", "start_url": "/",

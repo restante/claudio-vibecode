@@ -52,6 +52,12 @@ def test_pair_code_is_single_use_and_phone_routes_need_pairing(srv):
     assert call(srv, "POST", "/api/say", {"session": "s", "text": "x"}, no_header)[0] == 401
 
 
+def test_service_worker_script_is_served_for_notifications(srv):
+    status, body, _ = call(srv, "GET", "/sw.js")
+    assert status == 200
+    assert b"notificationclick" in body
+
+
 def test_bad_origin_is_refused(srv):
     headers, _ = pair(srv)
     evil = {**headers, "Origin": "http://evil.example"}

@@ -19,6 +19,7 @@ computer: no app, no account, nothing leaves your network.
   computer from your first tap until the second (90 seconds at most). It presses that key in the front window, so the Claude terminal must be
   focusable and the screen unlocked. On macOS allow your terminal app in System Settings > Privacy & Security >
   Accessibility; on Linux install `xdotool` (X11).
+- **Bell** turns on a notification when Claude replies and the page is in the background. It is raised by the page itself (a tiny service worker, `/sw.js`), so it needs HTTPS and the page must still be running: Android keeps it alive for a while, longer when Claude's voice plays on the phone; on iPhone add the page to the Home Screen. There is no push service, so a fully asleep page cannot notify.
 - `/w` is the same page with huge buttons for a watch browser.
 
 ## Windows
