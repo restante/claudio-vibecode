@@ -18,7 +18,9 @@ Start a task at your desk. Check on it from the sofa. Answer Claude from your ph
 
 Claude Code does its best work when you let it run. But a long task shouldn't keep you chained to the monitor.
 
-Claudio vibecode puts a small web page on your phone that is connected to the Claude Code sessions on your computer. Nothing to install on the phone, no account, and nothing leaves your network.
+Claudio vibecode is a free, open-source remote control for Claude Code. Use Claude Code from your phone, on iPhone or Android, to read replies, answer by voice or text, and stop a task, with Claude's voice read aloud. Claude Code remote, Claude Code mobile and Claude Code voice, in one small package.
+
+It puts a small web page on your phone that is connected to the Claude Code sessions on your computer. Nothing to install on the phone, no account, and nothing leaves your network.
 
 - **Read** what Claude is doing, across every session you have open.
 - **Reply** by typing or by voice. Your message arrives as if you had typed it at the keyboard.
