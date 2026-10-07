@@ -91,7 +91,7 @@ claudio-vibecode is installed.
 
   1. Restart Claude Code (open sessions only pick the mod up when they start).
   2. In a session type:  /vibe      It starts the hub and shows a QR code.
-  3. Scan it with your phone camera (same Wi-Fi). Tap Listen to hear Claude's voice on the phone.
+  3. Scan it with your phone camera (same Wi-Fi). Then talk to Claude, attach a photo or file with the paperclip, and set Out to Phone to hear it.
 
 Other commands: /vibe status, /vibe devices, /vibe off, /vibe update
 DONE

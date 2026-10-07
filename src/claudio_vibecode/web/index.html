@@ -81,8 +81,8 @@
   .boxwrap { position:relative; }
   #clear { position:absolute; top:8px; right:8px; flex:none; padding:3px 10px; font-size:12px; border-radius:999px; }
   #clear[hidden] { display:none; }
-  #attach { position:absolute; bottom:8px; left:8px; flex:none; background:none; color:var(--dim); padding:6px; border-radius:999px; line-height:0; }
-  #attach .ic { width:20px; height:20px; }
+  #attach { position:absolute; bottom:8px; left:8px; flex:none; display:flex; align-items:center; gap:6px; background:var(--bg); color:var(--text); border:1px solid var(--line); padding:5px 12px 5px 9px; font-size:13px; font-weight:500; border-radius:999px; }
+  #attach .ic { width:16px; height:16px; }
   body.watch #attach, body.watch .files { display:none; }
   .files { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; }
   .files[hidden] { display:none; }
@@ -123,9 +123,9 @@
   <div id="feed"></div>
   <footer>
     <div class="boxwrap">
-      <textarea id="text" rows="2" placeholder="Message Claude. Type or tap Speak, then Send." autocomplete="off"></textarea>
+      <textarea id="text" rows="2" placeholder="Message Claude. Type, speak or attach a photo, then Send." autocomplete="off"></textarea>
       <button class="dim" id="clear" hidden aria-label="Clear the message">Clear</button>
-      <button id="attach" title="Attach a photo or file" aria-label="Attach a photo or file" data-i="paperclip"></button>
+      <button id="attach" title="Attach a photo or file" aria-label="Attach a photo or file" ></button>
       <input type="file" id="file" multiple hidden accept="image/*,application/pdf,text/*,.md,.json,.csv,.log,.yaml,.yml,.xml,.diff,.patch">
     </div>
     <div class="files" id="files" hidden></div>
@@ -519,6 +519,7 @@ function renderFiles() {
     d.append(x); box_.append(d);
   });
 }
+$('attach').innerHTML = ic('paperclip') + 'Attach';
 $('attach').onclick = () => $('file').click();
 $('file').onchange = () => { addFiles($('file').files); $('file').value = ''; };
 box.addEventListener('paste', (e) => {  // a copied picture (long-press Paste on the phone, Ctrl/Cmd+V on a computer)

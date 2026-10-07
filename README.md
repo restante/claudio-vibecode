@@ -4,7 +4,7 @@
 
 ### Vibe code with your voice, from anywhere.
 
-Talk to Claude Code from your phone, and hear it talk back. Start a task at your desk, walk away, and keep the conversation going with no keyboard and no monitor.
+Talk to Claude Code from your phone, show it a photo or a file, and hear it talk back. Start a task at your desk, walk away, and keep the conversation going with no keyboard and no monitor.
 
 [![CI](https://github.com/restante/claudio-vibecode/actions/workflows/ci.yml/badge.svg)](https://github.com/restante/claudio-vibecode/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -18,7 +18,7 @@ Talk to Claude Code from your phone, and hear it talk back. Start a task at your
 
 Claude Code does its best work when you let it run. But a long task shouldn't keep you chained to the monitor.
 
-Claudio vibecode is a free, open-source remote control for Claude Code, built around your voice. Use Claude Code from your phone, on iPhone or Android: say what you want, hear Claude's answer read aloud, and say what's next. Claude Code remote, Claude Code mobile and Claude Code voice, in one small package.
+Claudio vibecode is a free, open-source remote control for Claude Code, built around your voice. Use Claude Code from your phone, on iPhone or Android: say what you want, attach a photo or a file, hear Claude's answer read aloud, and say what's next. Claude Code remote, Claude Code mobile and Claude Code voice, in one small package.
 
 It puts a small web page on your phone that is connected to the Claude Code sessions on your computer. Nothing to install on the phone, no account, and nothing leaves your network.
 
@@ -32,6 +32,7 @@ It puts a small web page on your phone that is connected to the Claude Code sess
 ### And everything else you need
 
 - **Read** what Claude is doing, across every session you have open.
+- **Show Claude what you see.** Attach a photo, a screenshot or a file from your phone, or paste a copied picture.
 - **Type** when talking isn't an option. Your message arrives as if you had typed it at the keyboard.
 - **Stop** a task that is going the wrong way, with one tap.
 - **Get notified** when Claude replies while the page is in the background.
@@ -96,7 +97,7 @@ A bonus: the secure address is what unlocks the **Phone mic** and **notification
 
 **One text box.** It mirrors the prompt box on your computer. Type, or tap **Speak** and talk, then edit before you send. **Clear** appears only when there is something to clear, and **Send** appears only when there is something to send.
 
-**Attach anything.** Tap the paperclip to take a photo, pick one from your library, or choose a file. You can also paste a copied picture into the box. Ask Claude about a screenshot, a crash log or a design, straight from your phone.
+**Attach anything.** Tap **Attach** to take a photo, pick one from your library, or choose a file. You can also paste a copied picture into the box. Ask Claude about a screenshot, a crash log or a design, straight from your phone.
 
 **Mic, Out, and mute.** Choose where you talk and where you listen. More on that below.
 
@@ -128,6 +129,18 @@ The speaker icon next to them mutes Claude's voice for the current session.
 Mix them however you like. Talk to your phone and listen on your computer. Or leave your computer entirely: Mic on Phone, Out on Phone.
 
 > **Phone mic needs HTTPS.** Browsers only let a page use the microphone over a secure connection. With [Tailscale](https://tailscale.com) installed and HTTPS certificates enabled, `/vibe` serves the page securely and the Phone mic turns on by itself. Without it, use your keyboard's dictation key, or set Mic to PC. The speech is transcribed by your browser's speech service (Apple or Google), never by this project.
+
+## Show Claude what you see
+
+Point your phone at the problem. Attach a photo of an error on another screen, a screenshot of a bug, a crash log, a PDF spec or a design, then ask Claude about it.
+
+1. Tap **Attach** (the paperclip) in the text box. Your phone offers Take Photo, Photo Library and Choose File. You can pick several.
+2. Or **paste** a picture you've copied: long-press in the text box and tap Paste.
+3. Each file appears as a small chip above Send, with a thumbnail and a cross to remove it. Add your question and tap **Send**.
+
+Claude receives the files together with your message and reads them like any other file in your project. Photos are shrunk on your phone first, so a 12 MB photo uploads in a moment.
+
+Files are saved in a `.claudio-uploads` folder inside your project. It's ignored by git and cleaned up after 24 hours. You can attach images, PDFs and text or code files, up to 8 per message and 20 MB each. More in [Secure by design](#secure-by-design).
 
 ## Know when Claude replies
 
@@ -192,6 +205,9 @@ No. On the same Wi-Fi it works as is. Tailscale adds the Phone mic, notification
 
 **Why does Speak with the PC mic ask for permission on my Mac?**
 It presses Claude Code's voice key for you in the front window, so your terminal needs Accessibility access: System Settings, Privacy & Security, Accessibility. On Linux, install `xdotool`. Keep the screen unlocked.
+
+**Can I send Claude a photo or a file?**
+Yes. Tap **Attach**, or paste a copied picture. See [Show Claude what you see](#show-claude-what-you-see).
 
 **Which phones work?**
 iPhone and Android, in the phone's normal browser. Notifications on iPhone need Safari and a Home Screen page.

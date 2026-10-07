@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "claudio-vibecode"
 version = "0.1.0"
-description = "Run Claude Code from your phone: transcript, Submit, Stop, speak and Claude's voice, over a local web page."
+description = "Vibe code with your voice: run Claude Code from your phone. Read, speak, attach photos and files, stop a task and hear Claude, over a local web page."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"

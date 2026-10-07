@@ -93,7 +93,7 @@ claudio-vibecode is installed.
 
   1. Restart Claude Code (open sessions only pick the mod up when they start).
   2. In a session type:  /vibe      It starts the hub and shows a QR code.
-  3. Scan it with your phone camera (same Wi-Fi). Allow python.exe on Private networks if Windows asks.
+  3. Scan it with your phone camera (same Wi-Fi). Allow python.exe on Private networks if Windows asks. Then talk to Claude, or attach a photo or file with the paperclip.
 
 Windows support is in beta: please report problems at https://github.com/$Repo/issues
 "@
