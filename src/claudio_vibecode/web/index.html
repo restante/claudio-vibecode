@@ -16,6 +16,7 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin:0; background:var(--bg); color:var(--text);
                font:16px/1.45 system-ui, -apple-system, sans-serif; }
+  html, body { overscroll-behavior:none; }  /* no rubber-band bounce or pull-to-refresh */
   body { min-height:100dvh; }
   header { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 12px; }
   header::-webkit-scrollbar, #tabs::-webkit-scrollbar { display:none; }
@@ -208,7 +209,15 @@ let listening = false, beat = null, played = new Set(), clips = [];
 const out = $('voiceout'), keep = $('keep');
 function pump() { if (!listening || !clips.length || !(out.paused || out.ended)) return; out.src = clips.shift(); out.play().catch(() => pump()); }
 out.onended = pump; out.onerror = pump;
+// One at a time: a second call while the first is still starting the audio would restart it and make it fail.
+let listenBusy = null;
 async function setListening(on) {
+  if (listenBusy) await listenBusy;
+  if (on && listening) return;  // already playing
+  listenBusy = startListening(on);
+  try { await listenBusy; } finally { listenBusy = null; }
+}
+async function startListening(on) {
   listening = on;
   if (on) {
     keep.src = silentWav(1);  // a silent loop keeps the page alive with the screen off
@@ -243,7 +252,7 @@ function resumeOut() {
   if (!resuming) resuming = setListening(true).then(() => { if (listening) api('/api/localsound', { on: false }); }).finally(() => { resuming = null; });
   return resuming;
 }
-document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#outPC')) resumeOut(); }, true);
+document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#outPC, #outPhone')) resumeOut(); }, true);
 // ---- Notifications: when a reply arrives and the page is in the background (needs HTTPS, so the bell hides on http) ----
 const canNotify = 'Notification' in window && window.isSecureContext;
 let notifyOn = false, noteSW = false;
@@ -287,8 +296,9 @@ function render() {
   if (!snap) return;
   $('micPC').classList.toggle('on', micSel === 'pc');
   $('micPhone').classList.toggle('on', micSel === 'phone');
-  $('outPC').classList.toggle('on', outSel === 'pc');
-  $('outPhone').classList.toggle('on', outSel === 'phone');
+  const outPhone = outSel === 'phone' && listening;  // what the hub really does: PC plays unless this phone is listening
+  $('outPC').classList.toggle('on', !outPhone);
+  $('outPhone').classList.toggle('on', outPhone);
   takeClips();
   $('bell').hidden = !canNotify;
   const bellOn = notifyOn && canNotify && Notification.permission === 'granted';
