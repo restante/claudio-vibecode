@@ -87,7 +87,7 @@ A bonus: the secure address is what unlocks the **Phone mic** and **notification
 
 <table>
 <tr>
-<td width="300"><img src="docs/images/idle.png" alt="The conversation view with a text box, Send button, Mic and Out controls, and a Speak button" width="280"></td>
+<td width="300"><img src="docs/images/idle.png" alt="The conversation view with a message, two attached files, the Send button, Mic and Out controls, and a Speak button" width="280"></td>
 <td valign="top">
 
 **Your sessions, at the top.** Every Claude Code session on your computer is one tap away. A green dot means idle, amber means Claude is working.
